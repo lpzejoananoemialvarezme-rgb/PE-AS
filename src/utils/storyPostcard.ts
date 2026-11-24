@@ -1,0 +1,364 @@
+import { StoryScenePhoto } from '../data/defaultStages';
+
+export interface StoryPostcardOptions {
+  scene: StoryScenePhoto;
+  avatarSvg: SVGSVGElement | null;
+  playerName: string;
+  rankTitle: string;
+  travelerTypeTitle: string;
+  shareUrl: string;
+}
+
+function loadImage(src: string, timeoutMs = 10000): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`Timeout loading ${src}`));
+    }, timeoutMs);
+
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      reject(new Error(`Failed to load ${src}`));
+    };
+    img.src = src;
+  });
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  targetW: number,
+  targetH: number
+) {
+  const imgRatio = img.naturalWidth / Math.max(1, img.naturalHeight);
+  const targetRatio = targetW / targetH;
+  let drawW = targetW;
+  let drawH = targetH;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (imgRatio > targetRatio) {
+    drawH = targetH;
+    drawW = targetH * imgRatio;
+    offsetX = -(drawW - targetW) / 2;
+  } else {
+    drawW = targetW;
+    drawH = targetW / imgRatio;
+    offsetY = -(drawH - targetH) / 2;
+  }
+
+  ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+}
+
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function wrapTextLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function drawAguayoStrip(ctx: CanvasRenderingContext2D, y: number, width: number) {
+  const bands = [
+    { h: 8, color: '#8C3B2B' },
+    { h: 6, color: '#F5B700' },
+    { h: 8, color: '#1E4D3B' },
+    { h: 8, color: '#1D4E89' },
+    { h: 6, color: '#D9A05B' }
+  ];
+  let curY = y;
+  for (const band of bands) {
+    ctx.fillStyle = band.color;
+    ctx.fillRect(0, curY, width, band.h);
+    curY += band.h;
+  }
+}
+
+function drawChakana(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, color: string) {
+  const u = size / 6;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx - u, cy - 3 * u);
+  ctx.lineTo(cx + u, cy - 3 * u);
+  ctx.lineTo(cx + u, cy - 2 * u);
+  ctx.lineTo(cx + 2 * u, cy - 2 * u);
+  ctx.lineTo(cx + 2 * u, cy - u);
+  ctx.lineTo(cx + 3 * u, cy - u);
+  ctx.lineTo(cx + 3 * u, cy + u);
+  ctx.lineTo(cx + 2 * u, cy + u);
+  ctx.lineTo(cx + 2 * u, cy + 2 * u);
+  ctx.lineTo(cx + u, cy + 2 * u);
+  ctx.lineTo(cx + u, cy + 3 * u);
+  ctx.lineTo(cx - u, cy + 3 * u);
+  ctx.lineTo(cx - u, cy + 2 * u);
+  ctx.lineTo(cx - 2 * u, cy + 2 * u);
+  ctx.lineTo(cx - 2 * u, cy + u);
+  ctx.lineTo(cx - 3 * u, cy + u);
+  ctx.lineTo(cx - 3 * u, cy - u);
+  ctx.lineTo(cx - 2 * u, cy - u);
+  ctx.lineTo(cx - 2 * u, cy - 2 * u);
+  ctx.lineTo(cx - u, cy - 2 * u);
+  ctx.closePath();
+  ctx.fill();
+}
+
+export async function renderInstagramStoryBlob(options: StoryPostcardOptions): Promise<Blob> {
+  const W = 1080;
+  const H = 1920;
+
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    try {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise<void>((resolve) => window.setTimeout(resolve, 1200))
+      ]);
+    } catch {
+      // ignore font loading timeout
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D no disponible');
+
+  // 1. Background Peñas Real Photo
+  let bgImg: HTMLImageElement | null = null;
+  try {
+    bgImg = await loadImage(options.scene.imageUrl);
+  } catch {
+    try {
+      bgImg = await loadImage(options.scene.fallbackUrl);
+    } catch {
+      bgImg = null;
+    }
+  }
+
+  if (bgImg) {
+    drawCoverImage(ctx, bgImg, W, H);
+  } else {
+    const fallbackGrad = ctx.createLinearGradient(0, 0, 0, H);
+    fallbackGrad.addColorStop(0, '#0B1D2E');
+    fallbackGrad.addColorStop(0.55, '#1E4D3B');
+    fallbackGrad.addColorStop(1, '#6B4423');
+    ctx.fillStyle = fallbackGrad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 2. Measured Top & Bottom Scrim Gradients for Legible Editorial Typography
+  const topGrad = ctx.createLinearGradient(0, 0, 0, 560);
+  topGrad.addColorStop(0, 'rgba(6, 15, 25, 0.90)');
+  topGrad.addColorStop(0.55, 'rgba(6, 15, 25, 0.45)');
+  topGrad.addColorStop(1, 'rgba(6, 15, 25, 0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, W, 560);
+
+  const bottomGrad = ctx.createLinearGradient(0, 860, 0, H);
+  bottomGrad.addColorStop(0, 'rgba(6, 15, 25, 0)');
+  bottomGrad.addColorStop(0.35, 'rgba(8, 21, 35, 0.72)');
+  bottomGrad.addColorStop(0.75, 'rgba(8, 21, 35, 0.94)');
+  bottomGrad.addColorStop(1, 'rgba(6, 15, 25, 0.98)');
+  ctx.fillStyle = bottomGrad;
+  ctx.fillRect(0, 860, W, H - 860);
+
+  // 3. Top & Bottom Aguayo Woven Strips + Subtle Gold Frame
+  drawAguayoStrip(ctx, 0, W);
+  drawAguayoStrip(ctx, H - 36, W);
+
+  ctx.strokeStyle = 'rgba(245, 183, 0, 0.45)';
+  ctx.lineWidth = 4;
+  roundRectPath(ctx, 32, 58, W - 64, H - 116, 36);
+  ctx.stroke();
+
+  // 4. Top Brand Header
+  drawChakana(ctx, W / 2, 130, 56, '#F5B700');
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFD166';
+  ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('PEÑAS · LA PAZ, BOLIVIA · 4.000 M', W / 2, 206);
+
+  ctx.fillStyle = '#FFF8E7';
+  ctx.font = '700 44px "Cinzel", Georgia, serif';
+  ctx.fillText('SENDERO DEL GUARDIÁN', W / 2, 266);
+
+  // Scene location tag
+  ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
+  const locText = `📍 ${options.scene.location}`;
+  const locWidth = Math.min(W - 140, ctx.measureText(locText).width + 64);
+  ctx.fillStyle = 'rgba(8, 21, 35, 0.82)';
+  roundRectPath(ctx, (W - locWidth) / 2, 296, locWidth, 56, 28);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(217, 160, 91, 0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#E8E3D9';
+  ctx.fillText(locText, W / 2, 333, locWidth - 36);
+
+  // 5. Golden Aura + Serialized Aymara Avatar
+  const avatarSize = 540;
+  const avatarX = (W - avatarSize) / 2;
+  const avatarY = 515;
+  const aura = ctx.createRadialGradient(
+    W / 2,
+    avatarY + avatarSize / 2,
+    60,
+    W / 2,
+    avatarY + avatarSize / 2,
+    360
+  );
+  aura.addColorStop(0, 'rgba(245, 183, 0, 0.52)');
+  aura.addColorStop(0.55, 'rgba(82, 183, 136, 0.22)');
+  aura.addColorStop(1, 'rgba(8, 21, 35, 0)');
+  ctx.fillStyle = aura;
+  ctx.beginPath();
+  ctx.arc(W / 2, avatarY + avatarSize / 2, 360, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (options.avatarSvg) {
+    const clone = options.avatarSvg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', String(avatarSize));
+    clone.setAttribute('height', String(avatarSize));
+    const xml = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    try {
+      const avatarImg = await loadImage(svgUrl);
+      ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  }
+
+  // 6. Player Identity & Traveler Type Block
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#52B788';
+  ctx.font = '700 30px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(options.rankTitle.toUpperCase(), W / 2, 1110);
+
+  ctx.fillStyle = '#FFF8E7';
+  ctx.font = '700 58px "Cinzel", Georgia, serif';
+  ctx.fillText(options.playerName, W / 2, 1182, W - 120);
+
+  ctx.fillStyle = '#FFD166';
+  ctx.font = '700 40px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(options.travelerTypeTitle, W / 2, 1244, W - 120);
+
+  // Promotional Peñas Banner + Phrase
+  const promoBoxX = 96;
+  const promoBoxY = 1286;
+  const promoBoxW = W - 192;
+  const promoBoxH = 194;
+
+  ctx.fillStyle = 'rgba(30, 77, 59, 0.88)';
+  roundRectPath(ctx, promoBoxX, promoBoxY, promoBoxW, promoBoxH, 24);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(245, 183, 0, 0.72)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFD166';
+  ctx.font = '700 32px "Cinzel", Georgia, serif';
+  ctx.fillText('¡VISITA PEÑAS, LA PAZ!', W / 2, promoBoxY + 54);
+
+  ctx.fillStyle = '#FFF8E7';
+  ctx.font = '600 28px "Plus Jakarta Sans", sans-serif';
+  const promoText =
+    options.scene.promoPhrase ||
+    '¡Visita Peñas, La Paz! Historia, montañas y aventura a 4.000 metros.';
+  const inviteLines = wrapTextLines(ctx, promoText, promoBoxW - 72);
+  inviteLines.slice(0, 2).forEach((line, idx) => {
+    ctx.fillText(line, W / 2, promoBoxY + 108 + idx * 40);
+  });
+
+  // 7. Bottom Shareable Link Card (for Instagram Stories link sticker / bio / QR-style promo)
+  const cardX = 84;
+  const cardY = 1515;
+  const cardW = W - 168;
+  const cardH = 270;
+
+  ctx.fillStyle = 'rgba(13, 33, 52, 0.94)';
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, 28);
+  ctx.fill();
+  ctx.strokeStyle = '#F5B700';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFD166';
+  ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('JUEGA GRATIS Y VISITA PEÑAS AQUÍ:', W / 2, cardY + 62);
+
+  // Clean URL Box inside card
+  const urlDisplay = options.shareUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  ctx.fillStyle = '#081523';
+  roundRectPath(ctx, cardX + 36, cardY + 88, cardW - 72, 76, 16);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(78, 168, 222, 0.55)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#4EA8DE';
+  ctx.font = '700 27px "JetBrains Mono", monospace';
+  ctx.fillText(urlDisplay, W / 2, cardY + 136, cardW - 120);
+
+  ctx.fillStyle = '#74C69D';
+  ctx.font = '700 26px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('Comparte esta historia y etiqueta #VisitaPeñasLaPaz', W / 2, cardY + 216);
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('No se pudo generar la postal PNG'));
+      },
+      'image/png',
+      0.95
+    );
+  });
+}

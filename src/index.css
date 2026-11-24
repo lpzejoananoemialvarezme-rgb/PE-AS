@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Cinzel', Georgia, serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html,
+  body {
+    font-family: var(--font-body);
+    background-color: #0b1d2e;
+    color: #f5f1e8;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes relicShimmer {
+  0% {
+    transform: translateX(-140%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(240%) skewX(-20deg);
+  }
+}
+
+.animate-relic-shimmer {
+  animation: relicShimmer 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes kenBurnsSlow {
+  0% {
+    transform: scale(1.01) translate3d(0%, 0%, 0);
+  }
+  50% {
+    transform: scale(1.08) translate3d(-1.4%, -0.8%, 0);
+  }
+  100% {
+    transform: scale(1.01) translate3d(0%, 0%, 0);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenBurnsSlow 18s ease-in-out infinite;
+}
+
+@keyframes moteFloat {
+  0% {
+    transform: translate3d(0, 8px, 0) scale(0.85);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.75;
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(14px, -28px, 0) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.animate-mote-float {
+  animation: moteFloat 6.5s ease-in-out infinite;
+}
+
+@keyframes sunSweep {
+  0% {
+    transform: translate3d(-25%, 0, 0) rotate(12deg);
+    opacity: 0.14;
+  }
+  50% {
+    transform: translate3d(20%, 0, 0) rotate(12deg);
+    opacity: 0.28;
+  }
+  100% {
+    transform: translate3d(-25%, 0, 0) rotate(12deg);
+    opacity: 0.14;
+  }
+}
+
+.animate-sun-sweep {
+  animation: sunSweep 11s ease-in-out infinite;
+}
+
+@keyframes medalRevealPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(-8deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-medal-reveal {
+  animation: medalRevealPop 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes goldenRingExpand {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.15);
+    opacity: 0;
+  }
+}
+
+.animate-golden-ring {
+  animation: goldenRingExpand 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes goldenParticleFly {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.25) rotate(0deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(var(--px, 0px), var(--py, -36px), 0) scale(1.1) rotate(var(--pr, 90deg));
+    opacity: 0;
+  }
+}
+
+.animate-golden-particle {
+  animation: goldenParticleFly var(--pd, 1.05s) cubic-bezier(0.16, 1, 0.3, 1) var(--pdelay, 0s) both;
+}
+
+@keyframes toastSlideReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, 3px, 0) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-toast-reveal {
+  animation: toastSlideReveal 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tataTalkIdle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  20% {
+    transform: translate3d(0, -3px, 0) rotate(-1.2deg) scale(1.015);
+  }
+  42% {
+    transform: translate3d(0, 0, 0) rotate(0.8deg) scale(1);
+  }
+  65% {
+    transform: translate3d(0, -2.5px, 0) rotate(1.4deg) scale(1.012);
+  }
+  84% {
+    transform: translate3d(0, -1px, 0) rotate(-0.6deg) scale(1.005);
+  }
+}
+
+@keyframes tataTalkActive {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  18% {
+    transform: translate3d(0, -5px, 0) rotate(-2.2deg) scale(1.03);
+  }
+  38% {
+    transform: translate3d(0, 1px, 0) rotate(1.5deg) scale(0.995);
+  }
+  58% {
+    transform: translate3d(0, -4.5px, 0) rotate(2.1deg) scale(1.028);
+  }
+  78% {
+    transform: translate3d(0, -1px, 0) rotate(-1.2deg) scale(1.01);
+  }
+}
+
+@keyframes speechBubblePop {
+  0% {
+    opacity: 0;
+    transform: translate3d(-12px, 6px, 0) scale(0.95);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(2px, -1px, 0) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes voiceBarDance {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-tata-idle {
+  transform-origin: center bottom;
+  animation: tataTalkIdle 3.2s ease-in-out infinite;
+}
+
+.animate-tata-talk {
+  transform-origin: center bottom;
+  animation: tataTalkActive 0.68s ease-in-out infinite;
+}
+
+.animate-speech-bubble {
+  animation: speechBubblePop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-voice-bar-1 {
+  animation: voiceBarDance 0.52s ease-in-out infinite;
+}
+.animate-voice-bar-2 {
+  animation: voiceBarDance 0.44s ease-in-out 0.14s infinite;
+}
+.animate-voice-bar-3 {
+  animation: voiceBarDance 0.58s ease-in-out 0.28s infinite;
+}
+
+@keyframes tataMouthSpeak {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  25% {
+    transform: scaleY(1.15);
+  }
+  50% {
+    transform: scaleY(0.6);
+  }
+  75% {
+    transform: scaleY(1.25);
+  }
+}
+
+.animate-tata-mouth {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tataMouthSpeak 0.42s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-relic-shimmer,
+  .animate-pulse-ring,
+  .animate-ken-burns,
+  .animate-mote-float,
+  .animate-sun-sweep,
+  .animate-medal-reveal,
+  .animate-golden-ring,
+  .animate-golden-particle,
+  .animate-toast-reveal,
+  .animate-tata-idle,
+  .animate-tata-talk,
+  .animate-tata-mouth,
+  .animate-speech-bubble,
+  .animate-voice-bar-1,
+  .animate-voice-bar-2,
+  .animate-voice-bar-3 {
+    animation: none;
+  }
+}

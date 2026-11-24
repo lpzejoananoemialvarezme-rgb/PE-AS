@@ -1,0 +1,6 @@
+{
+  "name": "Peñas: Sendero del Guardián",
+  "description": "Experiencia gamificada e interactiva para descubrir la historia, cultura aymara, naturaleza y tradiciones del pueblo de Peñas, La Paz, Bolivia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
