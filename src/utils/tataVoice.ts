@@ -197,44 +197,72 @@ class TataVoiceEngine {
     });
   }
 
-  /**
-   * Strongly prioritizes warm, deep Latin American elder male voices
-   * (avoiding Peninsular Spain es-ES voices whenever a LatAm voice exists).
-   */
-  public pickElderMaleSpanishVoice(): SpeechSynthesisVoice | null {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-    let voices = this.cachedVoices;
-    if (!voices.length) {
-      try {
-        voices = window.speechSynthesis.getVoices();
-        if (voices.length) this.cachedVoices = voices;
-      } catch {
-        return null;
+  private pickVoiceWithConfidence(): { voice: SpeechSynthesisVoice | null; isConfirmedMale: boolean } {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return { voice: null, isConfirmedMale: false };
+    }
+    let voices: SpeechSynthesisVoice[] = [];
+    try {
+      const fresh = window.speechSynthesis.getVoices();
+      if (fresh && fresh.length > 0) {
+        this.cachedVoices = fresh;
+        voices = fresh;
+      } else {
+        voices = this.cachedVoices;
       }
+    } catch {
+      voices = this.cachedVoices;
     }
 
     const spanish = voices.filter((v) => {
       const norm = (v.lang || '').replace(/_/g, '-').toLowerCase();
       return norm.startsWith('es') || norm.startsWith('spa');
     });
-    if (spanish.length === 0) return null;
+    if (spanish.length === 0) return { voice: null, isConfirmedMale: false };
+
+    const maleNamePattern =
+      /\b(alonso|jorge|tomas|tomás|raul|raúl|diego|gerardo|salomon|salomón|emilio|alvaro|álvaro|pablo|rodrigo|carlos|juan|enrique|miguel|pedro|mateo|andres|andrés|sebastian|sebastián|nicolas|nicolás|dario|darío|ernesto|oscar|óscar|luis|antonio|marcelo|gonzalo|alex|ramon|ramón|santiago|daniel|alejandro|hector|héctor|fernando|ricardo|eduardo|manuel|francisco|javier|alberto|sergio|victor|víctor|adrian|adrián|hugo|mario|ruben|rubén|ivan|iván|fabian|fabián|gustavo|roberto|patricio|lorenzo|arturo|cesar|césar|felix|félix|marcos|esteban|guillermo|agustin|agustín|bruno|lucas|gabriel|rafael|martin|martín|joaquin|joaquín|eddy|reed|grandpa|rocko|male|hombre|man|masculin)\b/;
+    const androidMaleIdPattern = /es-us-x-es[df]|es-es-x-ee[cf]|es-mx-x-fs[hi]/;
+    const femaleNamePattern =
+      /\b(sabina|paulina|helena|elena|monica|mónica|laura|maria|maría|sofia|sofía|lucia|lucía|paloma|dalia|camila|salome|salomé|catalina|valeria|isabela|carmen|jimena|ximena|andrea|elvira|estrella|xime|abril|lia|lía|tania|veronica|verónica|trinidad|beatriz|patricia|ana|rosa|marisol|consuelo|soledad|clara|teresa|julia|nuria|silvia|angela|ángela|inma|lola|flo|grandma|sandy|shelley|female|mujer|woman|femenin)\b/;
+    const androidFemaleIdPattern = /es-us-x-sf[abc]|es-es-x-ee[ad]|es-mx-x-fsg/;
+
+    const classifyMale = (voice: SpeechSynthesisVoice): boolean => {
+      const id = `${(voice.name || '').toLowerCase()} ${(voice.voiceURI || '').toLowerCase()}`;
+      return maleNamePattern.test(id) || androidMaleIdPattern.test(id);
+    };
 
     const scoreVoice = (voice: SpeechSynthesisVoice): number => {
       const name = (voice.name || '').toLowerCase();
       const uri = (voice.voiceURI || '').toLowerCase();
+      const fullId = `${name} ${uri}`;
       const lang = (voice.lang || '').replace(/_/g, '-').toLowerCase();
       let score = 0;
 
       // Strongly avoid robotic / low-fi synthesizers
-      if (/espeak|compact|festival|mbrola|flite|pico/.test(name + ' ' + uri)) {
-        score -= 260;
+      if (/espeak|compact|festival|mbrola|flite|pico/.test(fullId)) {
+        score -= 950;
       }
 
-      // Strongly prefer neural / natural / enhanced voices
+      // Confirmed male voices ALWAYS take precedence over female/ambiguous voices
+      if (classifyMale(voice)) {
+        score += 650;
+      }
+
+      // Chrome's default "Google español" and "Google español de Estados Unidos" are female
+      if (/^google\s+espa[ñn]ol/.test(name)) {
+        score -= 650;
+      }
+
+      if (femaleNamePattern.test(fullId) || androidFemaleIdPattern.test(fullId)) {
+        score -= 800;
+      }
+
+      // Prefer neural / natural / enhanced voices among the chosen gender
       if (/natural|neural|online|enhanced|premium|wavenet|studio/.test(name)) {
         score += 140;
-      } else if (/google|microsoft|apple|siri|samsung/.test(name)) {
-        score += 50;
+      } else if (/microsoft|apple|siri|samsung/.test(name)) {
+        score += 45;
       }
 
       // Strongly prefer Latin American Spanish accents over Spain (es-ES)
@@ -252,30 +280,11 @@ class TataVoiceEngine {
       ) {
         score += 75;
       } else if (lang.includes('es-es')) {
-        score -= 60;
+        score -= 40;
       }
 
       if (/latin|latino|latam|estados unidos|united states|mexico|méxico|colombia|peru|perú|bolivia|argentina|chile/.test(name)) {
-        score += 55;
-      }
-
-      // Prefer deep warm male voices (avoid female voices so Tata sounds like an elder man)
-      if (
-        /\b(alonso|jorge|tomas|tomás|raul|raúl|diego|gerardo|salomon|salomón|emilio|rodrigo|carlos|juan|enrique|miguel|pablo|pedro|mateo|andres|andrés|sebastian|sebastián|nicolas|nicolás|dario|darío|ernesto|oscar|óscar|luis|antonio|eddy|reed|grandpa|male|hombre|man)\b/.test(
-          name
-        )
-      ) {
-        score += 110;
-      }
-      if (/\b(alvaro|álvaro)\b/.test(name)) {
-        score += 70;
-      }
-      if (
-        /\b(sabina|paulina|helena|elena|monica|mónica|laura|maria|maría|sofia|sofía|lucia|lucía|paloma|dalia|camila|salome|salomé|catalina|valeria|isabela|carmen|jimena|ximena|andrea|female|mujer|woman)\b/.test(
-          name
-        )
-      ) {
-        score -= 115;
+        score += 35;
       }
 
       if (voice.localService) score += 4;
@@ -283,7 +292,19 @@ class TataVoiceEngine {
     };
 
     const sorted = [...spanish].sort((a, b) => scoreVoice(b) - scoreVoice(a));
-    return sorted[0] || null;
+    const best = sorted[0] || null;
+    return {
+      voice: best,
+      isConfirmedMale: best ? classifyMale(best) : false
+    };
+  }
+
+  /**
+   * Strongly prioritizes warm, deep Latin American elder male voices
+   * (avoiding female defaults such as Chrome's Google español / es-ES whenever a male voice exists).
+   */
+  public pickElderMaleSpanishVoice(): SpeechSynthesisVoice | null {
+    return this.pickVoiceWithConfidence().voice;
   }
 
   public cleanForSpeech(rawText: string): string {
@@ -447,7 +468,7 @@ class TataVoiceEngine {
       return;
     }
 
-    const voice = this.pickElderMaleSpanishVoice();
+    const { voice, isConfirmedMale } = this.pickVoiceWithConfidence();
     let anyChunkStarted = false;
 
     const finishSpeech = (invokeCallback: boolean) => {
@@ -496,9 +517,9 @@ class TataVoiceEngine {
         this.activeUtterance = utterance;
         utterance.lang = voice?.lang || 'es-BO';
         if (voice) utterance.voice = voice;
-        // Warm elder grandfather voice at a natural, fluent conversational pace
-        utterance.pitch = 0.8;
-        utterance.rate = 0.94;
+        // Calm, warm elder male voice at a gentle unhurried pace
+        utterance.pitch = isConfirmedMale ? 0.84 : 0.65;
+        utterance.rate = isConfirmedMale ? 0.87 : 0.85;
         utterance.volume = 1;
 
         utterance.onstart = () => {
@@ -515,7 +536,7 @@ class TataVoiceEngine {
           if (currentSeq !== this.sequenceId) return;
           this.pauseTimer = window.setTimeout(() => {
             speakChunk(index + 1);
-          }, 95);
+          }, 185);
         };
 
         utterance.onerror = () => {

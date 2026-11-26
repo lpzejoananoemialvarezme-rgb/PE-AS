@@ -36,7 +36,7 @@ async function generateTataAudioWav(text: string): Promise<Buffer> {
   }
 
   const stylePrompt =
-    'Voz masculina mayor latinoamericana de Bolivia. Tono cálido, amigable, cercano y tranquilo, como un abuelo guía conversando con cariño a ritmo natural y fluido en español latinoamericano, sin dramatismo ni pausas largas.';
+    'Voz masculina madura y muy calmada de Bolivia. Hombre sereno de tono grave, cálido y pausado, hablando con tranquilidad y cariño como un abuelo guía en español latinoamericano.';
 
   const tryModels = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'] as const;
   let lastError: unknown = null;
