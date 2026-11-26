@@ -8,7 +8,7 @@ import {
   AvatarOutfit,
   AvatarPalette
 } from '../types/game';
-import { AymaraAvatar } from './AymaraAvatar';
+import { AymaraFullBodyAvatar, AvatarPose } from './AymaraFullBodyAvatar';
 import { soundEngine } from '../utils/sound';
 
 interface AvatarCreatorModalProps {
@@ -34,7 +34,7 @@ const HAIR_COLORS = [
 ];
 
 const HAIR_STYLES: { id: AvatarHairStyle; label: string; desc: string }[] = [
-  { id: 'trenzas_tullmas', label: 'Trenzas con Tullmas', desc: 'Trenzas tradicionales con borlas tejidas' },
+  { id: 'trenzas_tullmas', label: 'Trenzas con Tullmas (borlas tejidas)', desc: 'Trenzas tradicionales con borlas tejidas' },
   { id: 'trenzas_dobles', label: 'Trenzas Clásicas', desc: 'Dos trenzas largas sobre los hombros' },
   { id: 'cabello_suelto', label: 'Cabello Largo', desc: 'Melena suelta al viento de la cordillera' },
   { id: 'corto_andino', label: 'Corte Corto', desc: 'Estilo práctico de caminante andino' }
@@ -42,20 +42,20 @@ const HAIR_STYLES: { id: AvatarHairStyle; label: string; desc: string }[] = [
 
 const OUTFITS: { id: AvatarOutfit; label: string; desc: string }[] = [
   { id: 'poncho_tejido', label: 'Poncho Tejido', desc: 'Poncho aymara con franjas y flecos' },
-  { id: 'pollera_manta', label: 'Manta y Tupu', desc: 'Manta tradicional sujeta con prendedor tupu' },
-  { id: 'chaleco_aguayo', label: 'Chaleco de Aguayo', desc: 'Chaleco explorador con detalles tejidos' },
-  { id: 'capa_guardian', label: 'Capa del Guardián', desc: 'Capa ceremonial con emblema Chakana' }
+  { id: 'pollera_manta', label: 'Pollera, Manta y Tupu (prendedor tradicional)', desc: 'Pollera y manta tradicional sujeta con prendedor tupu' },
+  { id: 'chaleco_aguayo', label: 'Chaleco de Aguayo (tejido andino)', desc: 'Chaleco explorador con detalles tejidos' },
+  { id: 'capa_guardian', label: 'Capa Chakana (cruz andina)', desc: 'Capa ceremonial del Guardián con emblema Chakana' }
 ];
 
 const HEADWEAR_OPTIONS: { id: AvatarHeadwear; label: string; desc: string }[] = [
-  { id: 'chullo', label: 'Chullo Andino', desc: 'Gorro tejido con orejeras y borlas' },
+  { id: 'chullo', label: 'Chullo (gorro tejido con orejeras)', desc: 'Gorro tejido tradicional con orejeras y borlas' },
   { id: 'sombrero_bombin', label: 'Sombrero Bombín', desc: 'Clásico sombrero paceño con cinta' },
-  { id: 'vincha_chakana', label: 'Vincha Chakana', desc: 'Cinta tejida con símbolo escalonado' },
+  { id: 'vincha_chakana', label: 'Vincha Chakana (cruz andina)', desc: 'Cinta tejida con símbolo escalonado' },
   { id: 'ninguno', label: 'Sin Sombrero', desc: 'Deja lucir tu peinado libremente' }
 ];
 
 const ACCESSORIES: { id: AvatarAccessory; label: string; desc: string }[] = [
-  { id: 'chuspa', label: 'Chuspa Tejida', desc: 'Bolsa tradicional andina cruzada' },
+  { id: 'chuspa', label: 'Chuspa (bolsa tradicional tejida)', desc: 'Bolsa tradicional andina cruzada' },
   { id: 'bufanda_alpaca', label: 'Bufanda de Alpaca', desc: 'Abrigo tejido para los 4.000 m s. n. m.' },
   { id: 'collar_plata', label: 'Collar Ceremonial', desc: 'Pectoral andino de plata y oro' },
   { id: 'ninguno', label: 'Sin Accesorio', desc: 'Vestimenta limpia sin complementos' }
@@ -84,6 +84,7 @@ export const AvatarCreatorModal: React.FC<AvatarCreatorModalProps> = ({
   const [draft, setDraft] = useState<AvatarConfig>({ ...initialConfig });
   const [nameDraft, setNameDraft] = useState(playerName);
   const [activeTab, setActiveTab] = useState<EditorTab>('rostro');
+  const [previewPose, setPreviewPose] = useState<AvatarPose>('idle');
 
   const handleRandomize = () => {
     soundEngine.playTileSwap();
@@ -161,14 +162,18 @@ export const AvatarCreatorModal: React.FC<AvatarCreatorModalProps> = ({
           </button>
         </div>
 
-        {/* Mobile Pinned Compact Live Preview + Fixed Tabs (Always visible on mobile!) */}
+        {/* Mobile Pinned Compact Live Full-Body Preview + Fixed Tabs */}
         <div className="md:hidden shrink-0 bg-[#081523]/95 border-b border-white/10 px-3.5 py-3 space-y-2.5">
           <div className="flex items-center gap-3">
-            <AymaraAvatar
-              config={draft}
-              className="w-20 h-20 shrink-0 drop-shadow-xl"
-              label="Vista previa de tu avatar aymara"
-            />
+            <div className="rounded-xl bg-[#0D2134] border border-white/10 p-1 shrink-0">
+              <AymaraFullBodyAvatar
+                config={draft}
+                pose={previewPose}
+                walking={previewPose === 'walk'}
+                className="w-16 h-24 shrink-0 drop-shadow-xl"
+                label="Vista previa en cuerpo completo de tu avatar aymara"
+              />
+            </div>
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -191,9 +196,22 @@ export const AvatarCreatorModal: React.FC<AvatarCreatorModalProps> = ({
                   <Shuffle className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-[11px] text-[#A3B1BF] truncate">
-                Vista previa en vivo · Toca abajo para personalizar
-              </p>
+              <div className="flex items-center gap-1.5">
+                {(['idle', 'walk', 'cheer'] as AvatarPose[]).map((poseKey) => (
+                  <button
+                    key={poseKey}
+                    type="button"
+                    onClick={() => setPreviewPose(poseKey)}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${
+                      previewPose === poseKey
+                        ? 'bg-[#F5B700] text-[#1A1207] border-[#FFD166]'
+                        : 'bg-[#0D2134] text-[#D8D3C8] border-white/15'
+                    }`}
+                  >
+                    {poseKey === 'idle' ? 'Quietud' : poseKey === 'walk' ? 'Caminar' : 'Celebrar'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -201,15 +219,35 @@ export const AvatarCreatorModal: React.FC<AvatarCreatorModalProps> = ({
         </div>
 
         {/* Main Body Split */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr]">
-          {/* Desktop Left Live Preview Column */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[270px_1fr]">
+          {/* Desktop Left Live Full-Body Preview Column */}
           <div className="hidden md:flex bg-[#081523]/75 border-r border-white/10 p-5 flex-col items-center justify-between gap-4">
             <div className="w-full flex flex-col items-center space-y-3">
-              <AymaraAvatar
-                config={draft}
-                className="w-44 h-44 drop-shadow-2xl"
-                label="Vista previa de tu avatar aymara"
-              />
+              <div className="w-full rounded-2xl bg-gradient-to-b from-[#0E243B] to-[#081523] border border-[#D9A05B]/30 py-3 flex flex-col items-center">
+                <AymaraFullBodyAvatar
+                  config={draft}
+                  pose={previewPose}
+                  walking={previewPose === 'walk'}
+                  className="w-36 h-52 drop-shadow-2xl"
+                  label="Vista previa en cuerpo completo de tu avatar aymara"
+                />
+                <div className="mt-1 flex items-center gap-1.5">
+                  {(['idle', 'walk', 'cheer'] as AvatarPose[]).map((poseKey) => (
+                    <button
+                      key={poseKey}
+                      type="button"
+                      onClick={() => setPreviewPose(poseKey)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border cursor-pointer ${
+                        previewPose === poseKey
+                          ? 'bg-[#F5B700] text-[#1A1207] border-[#FFD166]'
+                          : 'bg-[#0D2134] text-[#D8D3C8] border-white/15 hover:border-white/30'
+                      }`}
+                    >
+                      {poseKey === 'idle' ? 'Normal' : poseKey === 'walk' ? 'Caminar' : 'Celebrar'}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="w-full">
                 <label htmlFor="avatar-name-input" className="block text-xs font-semibold text-[#D9A05B] mb-1">

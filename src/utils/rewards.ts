@@ -502,7 +502,7 @@ export function downloadTouristGuide(
 
             <!-- Pinturas Rupestres -->
             <circle cx="403.0" cy="368.6" r="6.5" fill="#d97706" stroke="#fff" stroke-width="1.8" />
-            <text x="415" y="372">Pinturas Rupestres (Qillqantiji)</text>
+            <text x="415" y="372">Pinturas Rupestres (Qillqantiji · abrigo pintado)</text>
 
             <!-- Ruinas Carmenpata -->
             <circle cx="441.2" cy="423.6" r="7" fill="#9b3d28" stroke="#fff" stroke-width="2" />
@@ -550,7 +550,7 @@ export function downloadTouristGuide(
           </tr>
           <tr>
             <td><strong>Escalada y Boulder</strong></td>
-            <td>19 sectores de escalada (Torre Teresa, Techo del Topio, La Mamacha, Mujer Montaña, Pachamama, Placa del Águila...) y 26 bloques de boulder</td>
+            <td>19 sectores de escalada (Torre Teresa, Techo del Topio, La Mamacha, Mujer Montaña, Pachamama [Madre Tierra], Placa del Águila...) y 26 bloques de boulder</td>
             <td>Valle central: -16.2375, -68.5010</td>
           </tr>
           <tr>
@@ -597,8 +597,8 @@ export function downloadTouristGuide(
 
         <div class="card">
           <span class="badge badge-gold">Sabores Locales</span>
-          <h3>6. Queso Tradicional y Licor de K’oa</h3>
-          <p><strong>Queso criollo:</strong> Visita vivencial para conocer la elaboración artesanal con leche fresca de vaca de altura sin conservantes (consulta en tu hospedaje). <strong>Licor de k’oa:</strong> Macerado artesanal de hierba andina de aroma herbal fresco y uso digestivo.</p>
+          <h3>6. Queso Tradicional y Licor de K’oa (hierba ceremonial andina)</h3>
+          <p><strong>Queso criollo:</strong> Visita vivencial para conocer la elaboración artesanal con leche fresca de vaca de altura sin conservantes (consulta en tu hospedaje). <strong>Licor de k’oa (planta aromática ceremonial):</strong> Macerado artesanal de hierba andina de aroma herbal fresco y uso digestivo.</p>
         </div>
       </div>
 

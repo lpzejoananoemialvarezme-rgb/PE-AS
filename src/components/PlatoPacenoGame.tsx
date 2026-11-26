@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Heart, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { drawRoundRect, observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface PlatoPacenoGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -40,10 +44,13 @@ const INGREDIENT_META: Record<IngredientId, { label: string; color: string }> = 
 };
 
 export const PlatoPacenoGame: React.FC<PlatoPacenoGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const avatarTrackRef = useRef<HTMLDivElement | null>(null);
   const [counts, setCounts] = useState<Record<IngredientId, number>>(
     alreadySolved
       ? { choclo: 2, papa: 2, haba: 2, queso: 2 }
@@ -283,6 +290,14 @@ export const PlatoPacenoGame: React.FC<PlatoPacenoGameProps> = ({
 
       const platePixelX = st.plateX * w + (st.shake > 0 ? Math.sin(now * 0.06) * 6 * st.shake : 0);
       const platePixelY = h - 34;
+
+      if (avatarTrackRef.current) {
+        const avatarPx = Math.max(26, Math.min(w - 26, platePixelX - 66));
+        const deltaX = st.targetPlateX - st.plateX;
+        const movingDir = Math.abs(deltaX) > 0.01 ? (deltaX < 0 ? -1 : 1) : 1;
+        avatarTrackRef.current.style.left = `${(avatarPx / w) * 100}%`;
+        avatarTrackRef.current.style.transform = `translate(-50%, 0) scaleX(${movingDir})`;
+      }
 
       // Spawn & physics
       if (!st.won && !st.gameOver) {
@@ -546,6 +561,21 @@ export const PlatoPacenoGame: React.FC<PlatoPacenoGameProps> = ({
           className="block w-full touch-none cursor-ew-resize"
         />
 
+        {/* 60fps Synced Full-Body Player Avatar Catcher */}
+        <div
+          ref={avatarTrackRef}
+          className="pointer-events-none absolute bottom-1 z-10 w-11 h-[68px]"
+          style={{ left: '38%', transform: 'translate(-50%, 0)' }}
+        >
+          <AymaraFullBodyAvatar
+            config={playerAvatar}
+            pose={won ? 'cheer' : 'walk'}
+            walking={!won && !gameOver}
+            className="w-full h-full drop-shadow-[0_3px_6px_rgba(0,0,0,0.75)]"
+            showGroundShadow={false}
+          />
+        </div>
+
         {gameOver && (
           <div className="absolute inset-0 bg-[#050E17]/85 flex flex-col items-center justify-center p-4 text-center gap-3">
             <div className="font-display text-lg font-bold text-[#FCA5A5]">
@@ -594,15 +624,23 @@ export const PlatoPacenoGame: React.FC<PlatoPacenoGameProps> = ({
 
       {won && (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-              <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-              <span>¡Plato Paceño completo!</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                <span>¡Plato Paceño completo, {playerName}!</span>
+              </div>
+              <p className="text-xs text-[#E2DDD2]">
+                <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
+                Reuniste choclo, papa, habas y queso frito como en el cerco de 1781.
+              </p>
             </div>
-            <p className="text-xs text-[#E2DDD2]">
-              <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
-              Reuniste choclo, papa, habas y queso frito como en el cerco de 1781.
-            </p>
           </div>
 
           <button

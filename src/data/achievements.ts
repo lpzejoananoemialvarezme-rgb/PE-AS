@@ -3,7 +3,7 @@ import { AchievementDefinition, PlayerProgress } from '../types/game';
 export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'primer_paso',
-    title: 'Chaski de la Plaza',
+    title: 'Chaski (mensajero andino) de la Plaza',
     description: 'Completaste la primera etapa en la Plaza de Túpac Katari.',
     criterion: 'Completa la Etapa 1 de la travesía',
     tier: 'bronce',
@@ -11,7 +11,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   },
   {
     id: 'sin_errores_etapa',
-    title: 'Sabiduría de Amauta',
+    title: 'Sabiduría de Amauta (sabio andino)',
     description: 'Superaste un desafío al primer intento sin ningún tropiezo.',
     criterion: 'Completa cualquier etapa sin errores',
     tier: 'plata',
@@ -20,7 +20,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'maestro_telar',
     title: 'Viajero del Trueque',
-    description: 'Superaste el Camino Prehispánico y Saca Cuellos con totora o aguayo.',
+    description: 'Superaste el Camino Prehispánico y Saca Cuellos con totora (junco andino) o aguayo (tejido andino).',
     criterion: 'Completa la Etapa 3 (Camino Prehispánico)',
     tier: 'esmeralda',
     icon: 'loom'
@@ -36,7 +36,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'protector_pachamama',
     title: 'Guardián de las Cuevas',
-    description: 'Descifraste la Cueva Kunkuntiji y restauraste el arte de Qillqantiji.',
+    description: 'Descifraste la Cueva Kunkuntiji (gruta sagrada) y restauraste el arte de Qillqantiji (abrigo pintado).',
     criterion: 'Completa las etapas 4 y 5 (Cuevas Sagradas)',
     tier: 'esmeralda',
     icon: 'leaf'
@@ -59,7 +59,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   },
   {
     id: 'veloz_como_el_viento',
-    title: 'Veloz como el Wayra',
+    title: 'Veloz como el Wayra (viento andino)',
     description: 'Recorriste las 7 etapas desde la Plaza hasta el Mirador en tiempo récord.',
     criterion: 'Completa el juego en menos de 20 minutos',
     tier: 'oro',

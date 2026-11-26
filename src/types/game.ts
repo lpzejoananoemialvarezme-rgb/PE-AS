@@ -70,6 +70,10 @@ export interface StageData {
   educationalCapsule: string;
   didYouKnowBullets?: DidYouKnowBullet[];
   questionPrompt: string;
+  // Pre-challenge trivia gate grounded in didYouKnowBullets
+  triviaPrompt: string;
+  triviaOptions: string[];
+  triviaCorrectIndex: number;
   // Multiple choice & video quiz fields
   options: string[];
   correctIndex: number;

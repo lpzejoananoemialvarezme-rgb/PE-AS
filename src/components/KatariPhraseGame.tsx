@@ -1,9 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface KatariPhraseGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -43,6 +47,8 @@ function shuffleStones(list: WordStone[]): WordStone[] {
 }
 
 export const KatariPhraseGame: React.FC<KatariPhraseGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -168,7 +174,7 @@ export const KatariPhraseGame: React.FC<KatariPhraseGameProps> = ({
         {!solved && (
           <div className="pt-2 border-t border-white/10">
             <div className="text-[11px] font-semibold text-[#A3B1BF] mb-2">
-              Piedras disponibles (sobran 2 distractores):
+              Piedras disponibles:
             </div>
             <div className="flex flex-wrap gap-2">
               {pool.map((stone) => {
@@ -199,6 +205,25 @@ export const KatariPhraseGame: React.FC<KatariPhraseGameProps> = ({
           {errorMsg}
         </div>
       )}
+
+      {/* Full-body player avatar participation strip */}
+      <div className="rounded-xl bg-[#081523]/90 border border-[#D9A05B]/35 px-3.5 py-2 flex items-center gap-3">
+        <AymaraFullBodyAvatar
+          config={playerAvatar}
+          pose={solved ? 'cheer' : 'idle'}
+          heldItem={solved ? 'none' : 'stone'}
+          className="w-11 h-[68px] shrink-0"
+          showGroundShadow={false}
+        />
+        <div className="min-w-0 text-xs text-[#E2DDD2] leading-snug">
+          <div className="font-bold text-[#FFD166] truncate">{playerName} en la Plaza Principal</div>
+          <p className="text-[#CBD5E1]">
+            {solved
+              ? '«¡Volveré y seré millones!» Grabaste la proclama eterna junto a la piedra.'
+              : `Has colocado ${slots.filter(Boolean).length} de 4 bloques tallados en la placa histórica.`}
+          </p>
+        </div>
+      </div>
 
       {solved && (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

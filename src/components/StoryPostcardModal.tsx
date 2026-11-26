@@ -247,16 +247,13 @@ export const StoryPostcardModal: React.FC<StoryPostcardModalProps> = ({
               </div>
 
               {/* Story Top Lockup */}
-              <div className="relative z-10 px-3 pt-2 text-center space-y-1">
+              <div className="relative z-10 px-3 pt-2.5 text-center space-y-1">
                 <ChakanaLogoSvg className="w-6 h-6 mx-auto" />
                 <div className="text-[9px] font-bold tracking-wider text-[#FFD166]">
                   PEÑAS · LA PAZ, BOLIVIA · 4.000 M
                 </div>
                 <div className="font-display text-xs font-bold text-[#FFF8E7]">
                   SENDERO DEL GUARDIÁN
-                </div>
-                <div className="inline-block px-2 py-0.5 rounded-lg bg-[#081523]/80 border border-[#D9A05B]/50 text-[9px] text-[#E8E3D9] max-w-full truncate">
-                  📍 {scene.location}
                 </div>
               </div>
 
@@ -282,8 +279,8 @@ export const StoryPostcardModal: React.FC<StoryPostcardModalProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Identity + Promotional Phrase + Game Link Card */}
-              <div className="relative z-10 px-3 pb-2.5 text-center space-y-1.5">
+              {/* Bottom Identity + Clean Game Callout Card */}
+              <div className="relative z-10 px-3 pb-3 text-center space-y-2.5">
                 <div className="space-y-0.5">
                   <div className="text-[9px] font-bold uppercase tracking-wider text-[#52B788]">
                     {rankTitle}
@@ -296,25 +293,12 @@ export const StoryPostcardModal: React.FC<StoryPostcardModalProps> = ({
                   </div>
                 </div>
 
-                {/* Promotional Phrase Banner */}
-                <div className="rounded-lg bg-[#1E4D3B]/90 border border-[#F5B700]/70 px-2.5 py-1.5">
-                  <div className="font-display text-[9px] font-bold text-[#FFD166] tracking-wide">
-                    ¡VISITA PEÑAS, LA PAZ!
-                  </div>
-                  <div className="text-[9px] text-[#FFF8E7] leading-snug line-clamp-2">
-                    {scene.promoPhrase}
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-[#0D2134]/95 border border-[#F5B700]/75 p-1.5 space-y-0.5">
-                  <div className="text-[8px] font-bold text-[#FFD166] tracking-wide">
-                    JUEGA GRATIS Y VISITA PEÑAS AQUÍ:
+                <div className="rounded-xl bg-[#0D2134]/95 border border-[#F5B700]/75 px-2.5 py-2 space-y-1">
+                  <div className="text-[9px] font-bold text-[#FFD166] tracking-wide">
+                    Juega gratis y aprende sobre Peñas
                   </div>
                   <div className="px-2 py-0.5 rounded bg-[#081523] border border-[#4EA8DE]/45 font-mono-num text-[9px] text-[#4EA8DE] truncate">
                     {displayShareHost}
-                  </div>
-                  <div className="text-[8px] font-semibold text-[#74C69D]">
-                    #VisitaPeñasLaPaz
                   </div>
                 </div>
               </div>

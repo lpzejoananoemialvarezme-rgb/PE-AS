@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { RotateCcw, CheckCircle2 } from 'lucide-react';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface MemoryMatchGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -21,17 +25,17 @@ const PAIRS: CardItem[] = [
   },
   {
     pairId: 'koa',
-    title: "K'oa Andina",
-    fact: "Planta aromática ceremonial usada en las ofrendas a la Pachamama dentro de las cuevas y apachetas."
+    title: "K'oa (planta ceremonial)",
+    fact: "Planta aromática ceremonial usada en las ofrendas a la Pachamama (Madre Tierra) dentro de las cuevas y apachetas (montículos de piedras)."
   },
   {
     pairId: 'vizcacha',
-    title: 'Vizcacha',
+    title: 'Vizcacha (roedor andino)',
     fact: 'Roedor andino de orejas largas que habita entre las grietas de las rocas graníticas al amanecer.'
   },
   {
     pairId: 'yareta',
-    title: 'Yareta',
+    title: 'Yareta (planta milenaria)',
     fact: 'Planta compacta de crecimiento milenario que resiste las heladas extremas sobre los 4.000 metros.'
   },
   {
@@ -120,6 +124,8 @@ const CardSymbolSvg: React.FC<{ pairId: string }> = ({ pairId }) => {
 };
 
 export const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -131,7 +137,7 @@ export const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({
   const [moves, setMoves] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lastFact, setLastFact] = useState<string>(
-    "Voltea las piedras talladas de la Cueva Kunkuntiji para emparejar las 6 parejas sagradas."
+    "Voltea las piedras talladas de la Cueva Kunkuntiji (gruta en el cuello de la montaña) para emparejar las 6 parejas sagradas."
   );
 
   const handleFlip = (idx: number) => {
@@ -256,16 +262,27 @@ export const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({
         })}
       </div>
 
-      {/* Discovery Fact Bar */}
+      {/* Discovery Fact Bar with Player Avatar */}
       <div
-        className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm border ${
+        className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs sm:text-sm border ${
           isComplete
             ? 'bg-[#1E4D3B]/65 border-[#52B788] text-[#ECFDF5]'
             : 'bg-[#081523] border-white/10 text-[#D8D3C8]'
         }`}
       >
-        {isComplete && <CheckCircle2 className="w-4 h-4 text-[#52B788] shrink-0" />}
-        <span>{lastFact}</span>
+        <AymaraFullBodyAvatar
+          config={playerAvatar}
+          pose={isComplete ? 'cheer' : 'idle'}
+          className="w-11 h-[68px] shrink-0"
+          showGroundShadow={false}
+        />
+        <div className="min-w-0 flex items-start gap-2">
+          {isComplete && <CheckCircle2 className="w-4 h-4 text-[#52B788] shrink-0 mt-0.5" />}
+          <span className="leading-snug">
+            <strong className="text-[#FFD166]">{playerName}: </strong>
+            {lastFact}
+          </span>
+        </div>
       </div>
     </div>
   );

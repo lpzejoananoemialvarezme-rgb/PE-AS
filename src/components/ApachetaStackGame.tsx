@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowRight, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface ApachetaStackGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -41,6 +45,8 @@ const TARGET_STONES = 5;
 const STONE_SHADES = ['#78716C', '#6B655E', '#847C73', '#5E5851', '#8F867C'];
 
 export const ApachetaStackGame: React.FC<ApachetaStackGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -48,7 +54,7 @@ export const ApachetaStackGame: React.FC<ApachetaStackGameProps> = ({
   const [stackedCount, setStackedCount] = useState(alreadySolved ? TARGET_STONES : 0);
   const [statusMsg, setStatusMsg] = useState(
     alreadySolved
-      ? '¡Apacheta de 5 piedras en equilibrio sagrado!'
+      ? '¡Apacheta (montículo sagrado de piedras) de 5 piedras en equilibrio!'
       : 'Toca la roca o presiona «Soltar Piedra» cuando quede centrada sobre la anterior.'
   );
   const [falls, setFalls] = useState(0);
@@ -296,7 +302,9 @@ export const ApachetaStackGame: React.FC<ApachetaStackGameProps> = ({
                 soundEngine.playRelicUnlock();
                 g.won = true;
                 g.dropping = false;
-                setStatusMsg('¡Equilibrio perfecto! Has levantado una Apacheta sagrada para la Pachamama.');
+                setStatusMsg(
+                  '¡Equilibrio perfecto! Has levantado una Apacheta (montículo sagrado de piedras) para la Pachamama (Madre Tierra).'
+                );
               } else {
                 soundEngine.playTileSwap();
                 g.dropping = false;
@@ -520,19 +528,39 @@ export const ApachetaStackGame: React.FC<ApachetaStackGameProps> = ({
             <ArrowDown className="w-4 h-4" />
             <span>Soltar Piedra ({stackedCount + 1}/{TARGET_STONES})</span>
           </button>
-          <p className="text-xs text-[#D8D3C8] text-center">{statusMsg}</p>
+          <div className="rounded-xl bg-[#081523] border border-white/10 px-3.5 py-2 flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="idle"
+              heldItem="stone"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <p className="text-xs text-[#D8D3C8] leading-snug">
+              <strong className="text-[#FFD166]">{playerName}</strong> arma la apacheta (altar de piedras): {statusMsg}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-              <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-              <span>¡Apacheta levantada por la prosperidad!</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              heldItem="stone"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                <span>¡Apacheta (montículo sagrado) levantada!</span>
+              </div>
+              <p className="text-xs text-[#E2DDD2]">
+                <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
+                {statusMsg}
+              </p>
             </div>
-            <p className="text-xs text-[#E2DDD2]">
-              <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
-              {statusMsg}
-            </p>
           </div>
 
           <button

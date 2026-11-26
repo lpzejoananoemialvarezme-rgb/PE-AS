@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Award,
   Lock,
@@ -15,8 +15,10 @@ import { ChallengeType, GameTexts, PlayerProgress, StageData } from '../types/ga
 import { RelicIcon, ChakanaLogoSvg } from './RelicIcon';
 import { NarratorDock } from './NarratorDock';
 import { AymaraAvatar } from './AymaraAvatar';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 import { AudioControl } from './AudioControl';
 import { soundEngine } from '../utils/sound';
+import { tataVoice } from '../utils/tataVoice';
 
 interface EpicMapViewProps {
   stages: StageData[];
@@ -43,8 +45,8 @@ const CHALLENGE_LABEL: Record<ChallengeType, string> = {
   plato_paceno_catch: 'Plato Paceño',
   magic_brush: 'Pincel mágico',
   rupestre_snake: 'Arte rupestre',
-  apacheta_stack: 'Apilar 5 piedras',
-  calvario_crosses: 'Buscar 4 cruces'
+  apacheta_stack: 'Apilar piedras',
+  calvario_crosses: 'Buscar cruces'
 };
 
 export const EpicMapView: React.FC<EpicMapViewProps> = ({
@@ -68,6 +70,52 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
   const currentStageObj =
     sortedStages.find((s) => s.id === progress.unlockedStage) || sortedStages[sortedStages.length - 1];
 
+  const targetStage = allCompleted
+    ? sortedStages[sortedStages.length - 1]
+    : currentStageObj;
+
+  // Smooth full-body avatar walking state along map path
+  const [avatarPos, setAvatarPos] = useState(targetStage.mapPosition);
+  const [isWalkingOnMap, setIsWalkingOnMap] = useState(false);
+  const [walkFacing, setWalkFacing] = useState<'right' | 'left'>('right');
+  const prevTargetIdRef = useRef<number>(targetStage.id);
+
+  useEffect(() => {
+    const prevPos = avatarPos;
+    const nextPos = targetStage.mapPosition;
+    const dx = nextPos.x - prevPos.x;
+
+    if (prevTargetIdRef.current !== targetStage.id || Math.abs(dx) > 0.5 || Math.abs(nextPos.y - prevPos.y) > 0.5) {
+      if (Math.abs(dx) > 0.5) {
+        setWalkFacing(dx >= 0 ? 'right' : 'left');
+      }
+      setIsWalkingOnMap(true);
+      const raf = window.requestAnimationFrame(() => {
+        setAvatarPos(nextPos);
+      });
+      const doneTimer = window.setTimeout(() => {
+        setIsWalkingOnMap(false);
+      }, 1250);
+      prevTargetIdRef.current = targetStage.id;
+      return () => {
+        window.cancelAnimationFrame(raf);
+        window.clearTimeout(doneTimer);
+      };
+    }
+
+    // Gentle arrival walk on first map load
+    setIsWalkingOnMap(true);
+    const initialDone = window.setTimeout(() => setIsWalkingOnMap(false), 950);
+    return () => window.clearTimeout(initialDone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetStage.id]);
+
+  useEffect(() => {
+    return () => {
+      tataVoice.stop();
+    };
+  }, []);
+
   const activeStage =
     sortedStages.find((s) => s.id === hoveredStageId) || currentStageObj;
 
@@ -79,7 +127,7 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
             ? 'Toca para explorar este hito de Peñas.'
             : 'Completa la etapa anterior para desbloquear este camino.'
         }`
-      : `Avanza hacia la Etapa ${progress.unlockedStage}: ${activeStage.title}. ${gameTexts.mapScreen.narratorDefaultHint}`;
+      : gameTexts.mapScreen.narratorDefaultHint;
 
   return (
     <>
@@ -97,10 +145,10 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
           >
             <ChakanaLogoSvg className="w-8 h-8 shrink-0" />
             <div className="text-left min-w-0">
-              <div className="font-display text-sm font-bold text-[#FFF8E7] leading-tight truncate">
+              <div className="font-display text-base font-bold text-[#FFF8E7] leading-tight truncate">
                 {gameTexts.mapScreen.brandTitle}
               </div>
-              <div className="text-[11px] text-[#D9A05B] font-mono-num">
+              <div className="text-xs text-[#D9A05B] font-mono-num">
                 {completedCount}/7 Reliquias
               </div>
             </div>
@@ -126,7 +174,7 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
           </div>
         </header>
 
-        {/* Full 16:9 Panoramic Map Overview (No Edge Clipping) */}
+        {/* Full 16:9 Panoramic Map Overview with Walking Full-Body Avatar */}
         <div className="relative w-full aspect-[16/9] bg-[#0B1D2E] overflow-hidden border-b border-[#D9A05B]/30 shrink-0">
           {!mapError ? (
             <img
@@ -174,32 +222,18 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
             })}
           </svg>
 
-          {/* Mini Landmarks on Panoramic Map */}
+          {/* Landmarks on Panoramic Map */}
           {sortedStages.map((stage) => {
             const isCompleted = progress.completedStages.includes(stage.id);
             const isCurrent = stage.id === progress.unlockedStage && !isCompleted;
             const isUnlocked = stage.id <= progress.unlockedStage;
-            const isAvatarHere =
-              (allCompleted && stage.id === stages.length) ||
-              (!allCompleted && stage.id === progress.unlockedStage);
 
             return (
               <div
                 key={`mpin-${stage.id}`}
                 style={{ left: `${stage.mapPosition.x}%`, top: `${stage.mapPosition.y}%` }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+                className="absolute -translate-x-1/2 -translate-y-1/2"
               >
-                {isAvatarHere && (
-                  <div className="mb-1 w-8 h-8 rounded-full bg-[#081523] border-2 border-[#F5B700] shadow-lg flex items-center justify-center overflow-hidden">
-                    <AymaraAvatar
-                      circular
-                      config={progress.avatar}
-                      className="w-7 h-7"
-                      label={`Ubicación actual de ${progress.playerName || 'tu avatar'}`}
-                    />
-                  </div>
-                )}
-
                 <button
                   type="button"
                   onClick={() => {
@@ -230,13 +264,33 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
               </div>
             );
           })}
+
+          {/* Gliding Full-Body Walking Traveler Avatar (Mobile Map) */}
+          <div
+            style={{
+              left: `${avatarPos.x}%`,
+              top: `${Math.max(18, avatarPos.y - 10)}%`,
+              transition:
+                'left 1.15s cubic-bezier(0.22, 1, 0.36, 1), top 1.15s cubic-bezier(0.22, 1, 0.36, 1)'
+            }}
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full z-20 flex flex-col items-center"
+          >
+            <AymaraFullBodyAvatar
+              config={progress.avatar}
+              pose={allCompleted ? 'cheer' : isWalkingOnMap ? 'walk' : 'idle'}
+              walking={isWalkingOnMap}
+              facing={walkFacing}
+              className="w-10 h-16 drop-shadow-[0_6px_12px_rgba(0,0,0,0.75)]"
+              label={`Ubicación de ${progress.playerName || 'tu avatar'}`}
+            />
+          </div>
         </div>
 
-        {/* Mobile Content Area: Narrator + Thumb-Friendly Stage List */}
+        {/* Mobile Content Area */}
         <div className="px-3.5 py-3.5 space-y-3.5">
           {/* Shiny Relic Strip */}
           <div className="flex items-center justify-between gap-1.5 bg-[#0D2134] border border-[#D9A05B]/30 rounded-xl px-3 py-2">
-            <span className="text-[11px] font-semibold text-[#D9A05B] shrink-0">Reliquias:</span>
+            <span className="text-xs sm:text-sm font-semibold text-[#D9A05B] shrink-0">Reliquias:</span>
             <div className="flex items-center gap-1.5">
               {sortedStages.map((stage) => {
                 const isDone = progress.completedStages.includes(stage.id);
@@ -266,7 +320,7 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
 
           {/* 7-Stage Vertical Adventure Trail */}
           <div className="space-y-2.5">
-            <h2 className="text-xs font-bold tracking-wide text-[#D9A05B] px-1">
+            <h2 className="text-sm font-bold tracking-wide text-[#D9A05B] px-1">
               {gameTexts.mapScreen.trailTitle}
             </h2>
 
@@ -297,7 +351,6 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
                           : 'bg-[#0B1B2A]/70 border-white/10 opacity-65'
                   }`}
                 >
-                  {/* Left Relic / Stage Icon */}
                   <div
                     className={`relative overflow-hidden w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                       isCompleted
@@ -318,13 +371,12 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
                     )}
                   </div>
 
-                  {/* Middle Info */}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] font-medium text-[#D9A05B] truncate">
+                    <div className="text-xs font-medium text-[#D9A05B] truncate">
                       Etapa 0{stage.id} · {CHALLENGE_LABEL[stage.type]}
                     </div>
-                    <div className="text-sm font-bold text-[#FFF8E7] truncate">{stage.title}</div>
-                    <div className="text-xs text-[#A3B1BF] truncate">
+                    <div className="text-base font-bold text-[#FFF8E7] truncate">{stage.title}</div>
+                    <div className="text-sm text-[#A3B1BF] truncate">
                       {isCompleted
                         ? `Reliquia: ${stage.relicName}`
                         : isCurrent
@@ -333,12 +385,14 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Status / Avatar Indicator */}
                   <div className="shrink-0 flex items-center">
                     {isCurrent ? (
-                      <div className="w-11 h-11 rounded-full bg-[#081523] border-2 border-[#F5B700] p-0.5 flex items-center justify-center shadow">
-                        <AymaraAvatar circular config={progress.avatar} className="w-full h-full" />
-                      </div>
+                      <AymaraFullBodyAvatar
+                        config={progress.avatar}
+                        pose="walk"
+                        walking={isWalkingOnMap}
+                        className="w-9 h-14"
+                      />
                     ) : isCompleted ? (
                       <CheckCircle2 className="w-5 h-5 text-[#52B788]" />
                     ) : isUnlocked ? (
@@ -353,7 +407,7 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
           </div>
         </div>
 
-        {/* Sticky Bottom Thumb Action Bar (Single Fixed Element < 9% Viewport Height) */}
+        {/* Sticky Bottom Thumb Action Bar */}
         <nav
           aria-label="Acciones rápidas del viajero"
           className="fixed bottom-0 inset-x-0 z-30 h-16 px-3 bg-[#081523]/95 backdrop-blur-md border-t border-[#D9A05B]/35 flex items-center gap-2"
@@ -417,7 +471,6 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
       <div className="hidden md:flex relative h-screen w-screen overflow-hidden bg-[#081523] select-none flex-col">
         {/* Top Unobtrusive HUD Overlay */}
         <header className="pointer-events-none relative z-20 px-6 pt-3 pb-2 flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Game Brand + Progress */}
           <div className="pointer-events-auto flex items-center gap-3 bg-[#081523]/90 border border-[#D9A05B]/35 rounded-xl px-3.5 py-2 shadow-lg">
             <button
               type="button"
@@ -437,7 +490,6 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
             </button>
           </div>
 
-          {/* Center: Shiny 7-Relic Progression Bar */}
           <div className="pointer-events-auto hidden lg:flex items-center gap-2 bg-[#081523]/90 border border-[#D9A05B]/35 rounded-xl px-4 py-2 shadow-lg">
             {sortedStages.map((stage) => {
               const isDone = progress.completedStages.includes(stage.id);
@@ -469,7 +521,6 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
             })}
           </div>
 
-          {/* Right: Single-line Utility Controls */}
           <div className="pointer-events-auto flex items-center gap-2">
             {allCompleted && (
               <button
@@ -580,13 +631,11 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
               })}
             </svg>
 
+            {/* Stage Landmark Pins */}
             {sortedStages.map((stage) => {
               const isCompleted = progress.completedStages.includes(stage.id);
               const isCurrent = stage.id === progress.unlockedStage && !isCompleted;
               const isUnlocked = stage.id <= progress.unlockedStage;
-              const isAvatarHere =
-                (allCompleted && stage.id === stages.length) ||
-                (!allCompleted && stage.id === progress.unlockedStage);
 
               return (
                 <div
@@ -594,25 +643,6 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
                   style={{ left: `${stage.mapPosition.x}%`, top: `${stage.mapPosition.y}%` }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center"
                 >
-                  {isAvatarHere && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        soundEngine.playClick();
-                        onOpenAvatarCreator();
-                      }}
-                      title={`${progress.playerName.trim() || 'Viajero'} — clic para personalizar tu avatar`}
-                      className="mb-1.5 group relative w-14 h-14 rounded-full p-0.5 bg-[#081523]/95 border-2 border-[#F5B700] shadow-[0_6px_18px_rgba(0,0,0,0.65)] hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                    >
-                      <AymaraAvatar
-                        circular
-                        config={progress.avatar}
-                        className="w-full h-full"
-                        label={`Ubicación actual de ${progress.playerName || 'tu avatar'}`}
-                      />
-                    </button>
-                  )}
-
                   {isCurrent && (
                     <span
                       aria-hidden="true"
@@ -676,6 +706,39 @@ export const EpicMapView: React.FC<EpicMapViewProps> = ({
                 </div>
               );
             })}
+
+            {/* Persistent Walking Full-Body Player Avatar on Desktop Map */}
+            <div
+              style={{
+                left: `${avatarPos.x}%`,
+                top: `${Math.max(15, avatarPos.y - 6)}%`,
+                transition:
+                  'left 1.15s cubic-bezier(0.22, 1, 0.36, 1), top 1.15s cubic-bezier(0.22, 1, 0.36, 1)'
+              }}
+              className="absolute -translate-x-1/2 -translate-y-full z-20 flex flex-col items-center pointer-events-none"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playClick();
+                  onOpenAvatarCreator();
+                }}
+                title={`${progress.playerName.trim() || 'Viajero'} — clic para personalizar`}
+                className="pointer-events-auto group flex flex-col items-center cursor-pointer transition-transform hover:scale-105"
+              >
+                <span className="mb-0.5 rounded-md bg-[#081523]/92 border border-[#F5B700]/65 px-2 py-0.5 text-[11px] font-bold text-[#FFD166] shadow-md whitespace-nowrap">
+                  {progress.playerName.trim() || 'Tu Viajero'}
+                </span>
+                <AymaraFullBodyAvatar
+                  config={progress.avatar}
+                  pose={allCompleted ? 'cheer' : isWalkingOnMap ? 'walk' : 'idle'}
+                  walking={isWalkingOnMap}
+                  facing={walkFacing}
+                  className="w-16 h-24 drop-shadow-[0_10px_18px_rgba(0,0,0,0.8)]"
+                  label={`Ubicación actual de ${progress.playerName || 'tu avatar'} en el mapa`}
+                />
+              </button>
+            </div>
           </div>
         </main>
 

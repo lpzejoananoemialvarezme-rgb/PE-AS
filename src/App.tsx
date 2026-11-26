@@ -149,6 +149,10 @@ export default function App() {
   }, [progress]);
 
   useEffect(() => {
+    soundEngine.syncAmbientContext(screen, activeStageId);
+  }, [screen, activeStageId]);
+
+  useEffect(() => {
     if (toastAchievements.length === 0) return;
     const timer = window.setTimeout(() => {
       setToastAchievements([]);
@@ -191,19 +195,6 @@ export default function App() {
     setActiveStageId(null);
     setScreen('MAP_VIEW');
   }, []);
-
-  const handleResume = useCallback(() => {
-    soundEngine.startMusic();
-    soundEngine.playClick();
-    setProgress((prev) =>
-      prev.startedAt ? prev : { ...prev, startedAt: new Date().toISOString() }
-    );
-    if (progress.completedStages.length >= stages.length) {
-      setScreen('VICTORY_SCREEN');
-    } else {
-      setScreen('MAP_VIEW');
-    }
-  }, [progress.completedStages.length, stages.length]);
 
   const handleCompleteStage = (stageId: number, firstTry: boolean, selectedTrait: TravelerTrait) => {
     const alreadyDone = progress.completedStages.includes(stageId);
@@ -263,7 +254,6 @@ export default function App() {
   };
 
   const activeStage = stages.find((s) => s.id === activeStageId) || null;
-  const unlockedMedalsCount = (progress.unlockedAchievements || []).length;
 
   return (
     <div className="min-h-screen min-h-[100dvh] w-full bg-[#0B1D2E] text-[#F5F1E8]">
@@ -284,13 +274,8 @@ export default function App() {
           avatarConfig={progress.avatar}
           gameTexts={gameTexts}
           onChangeName={(name) => setProgress((p) => ({ ...p, playerName: name }))}
-          hasSavedProgress={progress.completedStages.length > 0}
-          completedCount={progress.completedStages.length}
-          unlockedMedalsCount={unlockedMedalsCount}
           onStart={handleStartNew}
-          onResume={handleResume}
           onOpenAvatarCreator={() => setIsAvatarCreatorOpen(true)}
-          onOpenProfile={() => setIsProfileOpen(true)}
         />
       )}
 

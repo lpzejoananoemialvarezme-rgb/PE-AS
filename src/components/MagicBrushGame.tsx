@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Brush, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface MagicBrushGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -15,6 +19,8 @@ const TOTAL_CELLS = GRID_COLS * GRID_ROWS;
 const TARGET_PERCENT = 78;
 
 export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -29,6 +35,7 @@ export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
   >([]);
   const [clearedPct, setClearedPct] = useState(alreadySolved ? 100 : 0);
   const [revealed, setRevealed] = useState(alreadySolved);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const paintDustOverlay = useCallback(() => {
@@ -237,6 +244,7 @@ export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
     particlesRef.current = [];
     setClearedPct(0);
     setRevealed(false);
+    setIsScrubbing(false);
   };
 
   return (
@@ -308,6 +316,7 @@ export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
             ref={dustCanvasRef}
             onPointerDown={(e) => {
               isDrawingRef.current = true;
+              setIsScrubbing(true);
               scrubAt(e.clientX, e.clientY, true);
             }}
             onPointerMove={(e) => {
@@ -315,10 +324,12 @@ export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
             }}
             onPointerUp={() => {
               isDrawingRef.current = false;
+              setIsScrubbing(false);
               lastPosRef.current = null;
             }}
             onPointerLeave={() => {
               isDrawingRef.current = false;
+              setIsScrubbing(false);
               lastPosRef.current = null;
             }}
             className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
@@ -333,22 +344,40 @@ export const MagicBrushGame: React.FC<MagicBrushGameProps> = ({
         />
       </div>
 
-      {/* Instruction / Reveal Caption cleanly BELOW the artwork */}
+      {/* Instruction / Reveal Caption with Full-Body Avatar Restorer */}
       {!revealed ? (
-        <div className="rounded-xl bg-[#081523] border border-white/10 px-4 py-2.5 text-xs sm:text-sm text-[#D8D3C8] text-center">
-          Desliza el dedo o el cursor sobre el polvo del tiempo hasta revelar el retablo dorado.
+        <div className="rounded-xl bg-[#081523] border border-white/10 px-3.5 py-2 flex items-center gap-3 text-xs sm:text-sm text-[#D8D3C8]">
+          <AymaraFullBodyAvatar
+            config={playerAvatar}
+            pose={isScrubbing ? 'paint' : 'idle'}
+            heldItem="brush"
+            className="w-11 h-[68px] shrink-0"
+            showGroundShadow={false}
+          />
+          <p className="leading-snug">
+            <strong className="text-[#FFD166]">{playerName}</strong> limpia el retablo: desliza el dedo o el cursor sobre el polvo del tiempo hasta revelar el pan de oro.
+          </p>
         </div>
       ) : (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-              <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-              <span>¡Brillo colonial restaurado!</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              heldItem="brush"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                <span>¡Brillo colonial restaurado!</span>
+              </div>
+              <p className="text-xs text-[#E2DDD2]">
+                <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
+                Retablo barroco en pan de oro · Templo Colonial y Pisadas de la Virgen de Peñas.
+              </p>
             </div>
-            <p className="text-xs text-[#E2DDD2]">
-              <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
-              Retablo barroco en pan de oro · Templo Colonial y Pisadas de la Virgen de Peñas.
-            </p>
           </div>
 
           <button

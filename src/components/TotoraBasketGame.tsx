@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Camera, CheckCircle2, Leaf, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { drawRoundRect, observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface TotoraBasketGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -28,34 +32,34 @@ interface PlantInfo {
 }
 
 const ACCENT_THEMES: AccentTheme[] = [
-  { id: 'dorado', label: 'Dorado Totora', primary: '#F5B700', secondary: '#FFE082' },
-  { id: 'aguayo', label: 'Rojo Aguayo', primary: '#D64550', secondary: '#F4A261' },
+  { id: 'dorado', label: 'Dorado Totora (junco andino)', primary: '#F5B700', secondary: '#FFE082' },
+  { id: 'aguayo', label: 'Rojo Aguayo (tejido andino)', primary: '#D64550', secondary: '#F4A261' },
   { id: 'lago', label: 'Azul Lago', primary: '#38BDF8', secondary: '#7DD3FC' },
-  { id: 'bofedal', label: 'Verde Bofedal', primary: '#52B788', secondary: '#95D5B2' }
+  { id: 'bofedal', label: 'Verde Bofedal (humedal de altura)', primary: '#52B788', secondary: '#95D5B2' }
 ];
 
 const TRADITIONAL_PLANTS: PlantInfo[] = [
   {
     id: 'chuno',
-    name: 'Chuño',
+    name: 'Chuño (papa deshidratada)',
     role: 'Papa deshidratada por helada para el trueque',
     accent: '#D6D3D1'
   },
   {
     id: 'quinua',
-    name: 'Quinua',
+    name: 'Quinua (grano sagrado)',
     role: 'Grano de oro del Altiplano andino',
     accent: '#F5B700'
   },
   {
     id: 'koa',
-    name: "K'oa",
+    name: "K'oa (planta ceremonial)",
     role: 'Planta aromática ceremonial andina',
     accent: '#A7C957'
   },
   {
     id: 'papa',
-    name: 'Papa',
+    name: 'Papa nativa',
     role: 'Tubérculo nativo de las terrazas de Peñas',
     accent: '#E07A5F'
   }
@@ -65,7 +69,7 @@ const CRAFT_SHOWCASE_SCENES = [
   {
     src: ASSETS.MUSEUM_ARTIFACTS,
     label: 'Cestería y Museo de Peñas',
-    caption: 'Canastas de totora, aguayos y productos nativos para el trueque andino.'
+    caption: 'Canastas de totora (junco lacustre), aguayos (tejidos andinos) y productos nativos para el trueque.'
   },
   {
     src: ASSETS.MURALES_CAFETERIA,
@@ -74,7 +78,7 @@ const CRAFT_SHOWCASE_SCENES = [
   },
   {
     src: ASSETS.MURAL_PACHAMAMA,
-    label: 'Mural de la Pachamama y Flores',
+    label: 'Mural de la Pachamama (Madre Tierra)',
     caption: 'Tradición oral, diente de león y ofrendas sagradas de las laderas.'
   }
 ];
@@ -111,6 +115,8 @@ interface HitTarget {
 }
 
 export const TotoraBasketGame: React.FC<TotoraBasketGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -1435,18 +1441,27 @@ export const TotoraBasketGame: React.FC<TotoraBasketGameProps> = ({
       {/* Final Showcase Card + Explicit Continue Button so player sees the finished basket! */}
       {phase === 'DONE' && (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/75 via-[#17334E]/85 to-[#2B1D0E]/80 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-              <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-              <span>¡Tu cesta de totora está lista para el trueque!</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              heldItem="basket"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                <span>¡Tu cesta de totora (junco lacustre) está lista para el trueque, {playerName}!</span>
+              </div>
+              <p className="text-xs text-[#E2DDD2]">
+                Cinta <strong className="text-[#FFF8E7]">{accentTheme.label}</strong> con{' '}
+                <strong className="text-[#E7E5E4]">chuño (papa deshidratada)</strong>,{' '}
+                <strong className="text-[#F5B700]">quinua (grano andino)</strong>,{' '}
+                <strong className="text-[#A7C957]">k&apos;oa (planta ceremonial)</strong> y{' '}
+                <strong className="text-[#F4A261]">papa</strong> de Peñas.
+              </p>
             </div>
-            <p className="text-xs text-[#E2DDD2]">
-              Cinta <strong className="text-[#FFF8E7]">{accentTheme.label}</strong> con{' '}
-              <strong className="text-[#E7E5E4]">chuño</strong>,{' '}
-              <strong className="text-[#F5B700]">quinua</strong>,{' '}
-              <strong className="text-[#A7C957]">k&apos;oa</strong> y{' '}
-              <strong className="text-[#F4A261]">papa</strong> de Peñas.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -1472,10 +1487,20 @@ export const TotoraBasketGame: React.FC<TotoraBasketGameProps> = ({
         </div>
       )}
 
-      {/* Status Banner */}
+      {/* Status Banner with Full-Body Weaver Avatar */}
       {phase !== 'DONE' && (
-        <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm border bg-[#081523] border-white/10 text-[#D8D3C8]">
-          <span>{statusMsg}</span>
+        <div className="flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs sm:text-sm border bg-[#081523] border-white/10 text-[#D8D3C8]">
+          <AymaraFullBodyAvatar
+            config={playerAvatar}
+            pose="paint"
+            heldItem="basket"
+            className="w-11 h-[68px] shrink-0"
+            showGroundShadow={false}
+          />
+          <span className="leading-snug">
+            <strong className="text-[#FFD166]">{playerName} teje: </strong>
+            {statusMsg}
+          </span>
         </div>
       )}
     </div>

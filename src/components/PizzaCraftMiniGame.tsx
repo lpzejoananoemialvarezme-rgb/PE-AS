@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Flame, CheckCircle2, RotateCcw } from 'lucide-react';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface PizzaCraftMiniGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -18,7 +22,7 @@ const RECIPE_ORDER: Ingredient[] = [
   { id: 'salsa', label: '2. Salsa con Huacatay', color: '#C0392B' },
   { id: 'queso', label: '3. Queso Fresco Andino', color: '#FFF8E7' },
   { id: 'tomate', label: '4. Tomates y Aceitunas', color: '#2D6A4F' },
-  { id: 'quinua', label: '5. Quinua Crocante', color: '#F5B700' }
+  { id: 'quinua', label: '5. Quinua Crocante (grano andino)', color: '#F5B700' }
 ];
 
 const SHUFFLED_BUTTONS: Ingredient[] = [
@@ -30,6 +34,8 @@ const SHUFFLED_BUTTONS: Ingredient[] = [
 ];
 
 export const PizzaCraftMiniGame: React.FC<PizzaCraftMiniGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -247,10 +253,19 @@ export const PizzaCraftMiniGame: React.FC<PizzaCraftMiniGameProps> = ({
         </div>
       </div>
 
-      {/* Feedback */}
-      <p className="text-xs sm:text-sm text-[#E2DDD2] bg-[#112A3E] border border-white/10 rounded-xl px-4 py-2.5">
-        {feedback}
-      </p>
+      {/* Feedback with Chef Avatar */}
+      <div className="flex items-center gap-3 text-xs sm:text-sm text-[#E2DDD2] bg-[#112A3E] border border-white/10 rounded-xl px-3.5 py-2">
+        <AymaraFullBodyAvatar
+          config={playerAvatar}
+          pose={phase === 'DONE' ? 'cheer' : 'idle'}
+          className="w-11 h-[68px] shrink-0"
+          showGroundShadow={false}
+        />
+        <p className="leading-snug">
+          <strong className="text-[#FFD166]">{playerName}: </strong>
+          {feedback}
+        </p>
+      </div>
     </div>
   );
 };

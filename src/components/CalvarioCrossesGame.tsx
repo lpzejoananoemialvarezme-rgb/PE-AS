@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle2, Compass, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface CalvarioCrossesGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -45,7 +49,7 @@ const HIDDEN_CROSSES: HiddenCross[] = [
   {
     id: 'c4',
     label: 'Cruz de la Cumbre del Calvario',
-    fact: 'Corona la cima del cerro, donde se agradece a la Pachamama por un buen camino.',
+    fact: 'Corona la cima del cerro, donde se agradece a la Pachamama (Madre Tierra) por un buen camino.',
     x: 84,
     y: 30,
     rotate: 2
@@ -53,6 +57,8 @@ const HIDDEN_CROSSES: HiddenCross[] = [
 ];
 
 export const CalvarioCrossesGame: React.FC<CalvarioCrossesGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -284,9 +290,9 @@ export const CalvarioCrossesGame: React.FC<CalvarioCrossesGameProps> = ({
         })}
       </div>
 
-      {/* Fact / Progress Bar */}
+      {/* Fact / Progress Bar with Exploring Full-Body Avatar */}
       <div
-        className={`rounded-xl px-4 py-2.5 text-xs sm:text-sm border ${
+        className={`rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border ${
           solved
             ? 'bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border-[#F5B700]/65'
             : 'bg-[#081523] border-white/10 text-[#D8D3C8]'
@@ -294,15 +300,24 @@ export const CalvarioCrossesGame: React.FC<CalvarioCrossesGameProps> = ({
       >
         {solved ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-                <span>¡4 Cruces del Calvario encontradas!</span>
+            <div className="flex items-center gap-3">
+              <AymaraFullBodyAvatar
+                config={playerAvatar}
+                pose="cheer"
+                heldItem="compass"
+                className="w-11 h-[68px] shrink-0"
+                showGroundShadow={false}
+              />
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                  <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                  <span>¡4 Cruces del Calvario encontradas!</span>
+                </div>
+                <p className="text-xs text-[#E2DDD2]">
+                  <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
+                  {lastFact}
+                </p>
               </div>
-              <p className="text-xs text-[#E2DDD2]">
-                <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
-                {lastFact}
-              </p>
             </div>
 
             <button
@@ -318,7 +333,20 @@ export const CalvarioCrossesGame: React.FC<CalvarioCrossesGameProps> = ({
             </button>
           </div>
         ) : (
-          <span>{lastFact}</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="walk"
+              walking
+              heldItem="compass"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <span className="leading-snug">
+              <strong className="text-[#FFD166]">{playerName} explora el cerro: </strong>
+              {lastFact}
+            </span>
+          </div>
         )}
       </div>
     </div>

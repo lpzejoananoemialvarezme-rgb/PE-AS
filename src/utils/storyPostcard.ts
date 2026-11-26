@@ -80,28 +80,6 @@ function roundRectPath(
   ctx.closePath();
 }
 
-function wrapTextLines(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number
-): string[] {
-  const words = text.trim().split(/\s+/);
-  const lines: string[] = [];
-  let current = '';
-
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    if (ctx.measureText(test).width <= maxWidth) {
-      current = test;
-    } else {
-      if (current) lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
-}
-
 function drawAguayoStrip(ctx: CanvasRenderingContext2D, y: number, width: number) {
   const bands = [
     { h: 8, color: '#8C3B2B' },
@@ -227,23 +205,10 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
   ctx.font = '700 44px "Cinzel", Georgia, serif';
   ctx.fillText('SENDERO DEL GUARDIÁN', W / 2, 266);
 
-  // Scene location tag
-  ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
-  const locText = `📍 ${options.scene.location}`;
-  const locWidth = Math.min(W - 140, ctx.measureText(locText).width + 64);
-  ctx.fillStyle = 'rgba(8, 21, 35, 0.82)';
-  roundRectPath(ctx, (W - locWidth) / 2, 296, locWidth, 56, 28);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(217, 160, 91, 0.6)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = '#E8E3D9';
-  ctx.fillText(locText, W / 2, 333, locWidth - 36);
-
   // 5. Golden Aura + Serialized Aymara Avatar
-  const avatarSize = 540;
+  const avatarSize = 580;
   const avatarX = (W - avatarSize) / 2;
-  const avatarY = 515;
+  const avatarY = 560;
   const aura = ctx.createRadialGradient(
     W / 2,
     avatarY + avatarSize / 2,
@@ -280,48 +245,21 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
   ctx.textAlign = 'center';
   ctx.fillStyle = '#52B788';
   ctx.font = '700 30px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(options.rankTitle.toUpperCase(), W / 2, 1110);
+  ctx.fillText(options.rankTitle.toUpperCase(), W / 2, 1245);
 
   ctx.fillStyle = '#FFF8E7';
-  ctx.font = '700 58px "Cinzel", Georgia, serif';
-  ctx.fillText(options.playerName, W / 2, 1182, W - 120);
+  ctx.font = '700 60px "Cinzel", Georgia, serif';
+  ctx.fillText(options.playerName, W / 2, 1320, W - 120);
 
   ctx.fillStyle = '#FFD166';
-  ctx.font = '700 40px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(options.travelerTypeTitle, W / 2, 1244, W - 120);
+  ctx.font = '700 42px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(options.travelerTypeTitle, W / 2, 1386, W - 120);
 
-  // Promotional Peñas Banner + Phrase
-  const promoBoxX = 96;
-  const promoBoxY = 1286;
-  const promoBoxW = W - 192;
-  const promoBoxH = 194;
-
-  ctx.fillStyle = 'rgba(30, 77, 59, 0.88)';
-  roundRectPath(ctx, promoBoxX, promoBoxY, promoBoxW, promoBoxH, 24);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(245, 183, 0, 0.72)';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  ctx.fillStyle = '#FFD166';
-  ctx.font = '700 32px "Cinzel", Georgia, serif';
-  ctx.fillText('¡VISITA PEÑAS, LA PAZ!', W / 2, promoBoxY + 54);
-
-  ctx.fillStyle = '#FFF8E7';
-  ctx.font = '600 28px "Plus Jakarta Sans", sans-serif';
-  const promoText =
-    options.scene.promoPhrase ||
-    '¡Visita Peñas, La Paz! Historia, montañas y aventura a 4.000 metros.';
-  const inviteLines = wrapTextLines(ctx, promoText, promoBoxW - 72);
-  inviteLines.slice(0, 2).forEach((line, idx) => {
-    ctx.fillText(line, W / 2, promoBoxY + 108 + idx * 40);
-  });
-
-  // 7. Bottom Shareable Link Card (for Instagram Stories link sticker / bio / QR-style promo)
-  const cardX = 84;
-  const cardY = 1515;
-  const cardW = W - 168;
-  const cardH = 270;
+  // 7. Bottom Game Callout Card (Clean, no hashtags or extra copy)
+  const cardX = 96;
+  const cardY = 1475;
+  const cardW = W - 192;
+  const cardH = 210;
 
   ctx.fillStyle = 'rgba(13, 33, 52, 0.94)';
   roundRectPath(ctx, cardX, cardY, cardW, cardH, 28);
@@ -331,13 +269,13 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
   ctx.stroke();
 
   ctx.fillStyle = '#FFD166';
-  ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText('JUEGA GRATIS Y VISITA PEÑAS AQUÍ:', W / 2, cardY + 62);
+  ctx.font = '700 32px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('Juega gratis y aprende sobre Peñas', W / 2, cardY + 72, cardW - 60);
 
   // Clean URL Box inside card
   const urlDisplay = options.shareUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
   ctx.fillStyle = '#081523';
-  roundRectPath(ctx, cardX + 36, cardY + 88, cardW - 72, 76, 16);
+  roundRectPath(ctx, cardX + 44, cardY + 102, cardW - 88, 72, 16);
   ctx.fill();
   ctx.strokeStyle = 'rgba(78, 168, 222, 0.55)';
   ctx.lineWidth = 2;
@@ -345,11 +283,7 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
 
   ctx.fillStyle = '#4EA8DE';
   ctx.font = '700 27px "JetBrains Mono", monospace';
-  ctx.fillText(urlDisplay, W / 2, cardY + 136, cardW - 120);
-
-  ctx.fillStyle = '#74C69D';
-  ctx.font = '700 26px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText('Comparte esta historia y etiqueta #VisitaPeñasLaPaz', W / 2, cardY + 216);
+  ctx.fillText(urlDisplay, W / 2, cardY + 148, cardW - 128);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(

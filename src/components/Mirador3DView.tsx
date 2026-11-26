@@ -11,8 +11,15 @@ import {
   Mountain,
   RotateCcw
 } from 'lucide-react';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
+
+interface Mirador3DViewProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
+}
 
 type CameraPresetId =
   | 'mirador'
@@ -449,7 +456,10 @@ function createSunsetSkyTexture(): THREE.CanvasTexture {
   return tex;
 }
 
-export const Mirador3DView: React.FC = () => {
+export const Mirador3DView: React.FC<Mirador3DViewProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero'
+}) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const hotspotRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [activePreset, setActivePreset] = useState<CameraPresetId>('mirador');
@@ -1585,11 +1595,22 @@ export const Mirador3DView: React.FC = () => {
             })}
           </div>
 
-          <div className="rounded-xl bg-[#081523] border border-[#4EA8DE]/30 px-3.5 py-2 flex items-start gap-2 text-xs">
-            <Info className="w-3.5 h-3.5 text-[#F5B700] shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <strong className="text-[#FFD166]">{currentInfo.infoTitle}: </strong>
-              <span className="text-[#E2DDD2]">{currentInfo.infoText}</span>
+          <div className="rounded-xl bg-[#081523] border border-[#4EA8DE]/30 px-3.5 py-2 flex items-center gap-3 text-xs">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              heldItem="compass"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex items-center gap-1.5 font-bold text-[#FFD166]">
+                <Info className="w-3.5 h-3.5 text-[#F5B700] shrink-0" />
+                <span className="truncate">
+                  {playerName} en {currentInfo.infoTitle}
+                </span>
+              </div>
+              <p className="text-[#E2DDD2] leading-snug">{currentInfo.infoText}</p>
             </div>
           </div>
         </div>

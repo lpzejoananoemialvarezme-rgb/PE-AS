@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX, Music, Play, Pause, ChevronDown } from 'lucide-react';
-import { ANDEAN_TRACKS, AndeanTrackId, soundEngine } from '../utils/sound';
+import { AMBIENT_SCENES, ANDEAN_TRACKS, AndeanTrackId, soundEngine } from '../utils/sound';
 
 interface AudioControlProps {
   compact?: boolean;
@@ -40,6 +40,8 @@ export const AudioControl: React.FC<AudioControlProps> = ({ compact = false }) =
   const volume = soundEngine.getVolume();
   const isPlaying = soundEngine.isMusicPlaying();
   const isAuto = soundEngine.isAutoRotate();
+  const isAmbient = soundEngine.isAmbientEnabled();
+  const ambientMeta = AMBIENT_SCENES[soundEngine.getAmbientScene()];
   const trackId = soundEngine.getTrackId();
   const currentTrack = ANDEAN_TRACKS.find((t) => t.id === trackId) || ANDEAN_TRACKS[0];
   const volumePct = Math.round(volume * 100);
@@ -154,6 +156,25 @@ export const AudioControl: React.FC<AudioControlProps> = ({ compact = false }) =
             <span className="font-semibold">Cambio automático de melodías</span>
             <span className={`font-bold ${isAuto ? 'text-[#52B788]' : 'text-[#94A3B8]'}`}>
               {isAuto ? 'Activo' : 'Manual'}
+            </span>
+          </button>
+
+          {/* Stage-Aware Ambient Soundscape Toggle */}
+          <button
+            type="button"
+            onClick={() => soundEngine.setAmbientEnabled(!isAmbient)}
+            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs cursor-pointer transition-colors ${
+              isAmbient
+                ? 'bg-[#1E4D3B]/65 border-[#52B788]/75 text-[#FFF8E7]'
+                : 'bg-[#0D2134] border-white/10 text-[#A3B1BF]'
+            }`}
+          >
+            <div className="text-left min-w-0">
+              <div className="font-semibold">Ambiente según la etapa</div>
+              <div className="text-[10px] text-[#CBD5E1] truncate">{ambientMeta.label}</div>
+            </div>
+            <span className={`font-bold shrink-0 ${isAmbient ? 'text-[#74C69D]' : 'text-[#94A3B8]'}`}>
+              {isAmbient ? 'Activo' : 'Apagado'}
             </span>
           </button>
 

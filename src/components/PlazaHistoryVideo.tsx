@@ -5,6 +5,7 @@ import { AvatarConfig } from '../types/game';
 import { AymaraAvatar } from './AymaraAvatar';
 import { TataCutoutCharacter } from './TataCutoutCharacter';
 import { soundEngine } from '../utils/sound';
+import { tataVoice } from '../utils/tataVoice';
 
 interface PlazaHistoryVideoProps {
   playerAvatar: AvatarConfig;
@@ -76,63 +77,11 @@ const SLIDES: CutsceneSlide[] = [
 ];
 
 function safeCancelSpeech() {
-  try {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-  } catch {
-    // ignore speechSynthesis restrictions in WebViews / Lockdown Mode
-  }
+  tataVoice.stop();
 }
 
 function speakNarration(text: string, onDone?: () => void) {
-  if (
-    typeof window === 'undefined' ||
-    !('speechSynthesis' in window) ||
-    typeof window.SpeechSynthesisUtterance === 'undefined'
-  ) {
-    return;
-  }
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-BO';
-    utterance.rate = 0.84;
-    utterance.pitch = 0.64;
-
-    const maleHint =
-      /\b(jorge|diego|carlos|juan|pablo|raul|raúl|alonso|tomas|tomás|enrique|miguel|rodrigo|pedro|antonio|alejandro|andres|andrés|sebastian|sebastián|mateo|emilio|javier|fernando|hector|héctor|luis|dario|darío|male|hombre|masculin)\b/i;
-    const femaleHint =
-      /\b(monica|mónica|paulina|helena|laura|sabina|lucia|lucía|sofia|sofía|carmen|maria|maría|elena|paloma|valeria|camila|marisol|conchita|angelica|angélica|francisca|ximena|dalia|female|mujer|femenin)\b/i;
-
-    const allVoices =
-      typeof window.speechSynthesis.getVoices === 'function'
-        ? window.speechSynthesis.getVoices()
-        : [];
-    const spanishVoices = allVoices.filter((v) => v.lang.toLowerCase().startsWith('es'));
-    if (spanishVoices.length > 0) {
-      spanishVoices.sort((a, b) => {
-        const score = (v: SpeechSynthesisVoice) => {
-          let s = 0;
-          const n = v.name.toLowerCase();
-          const l = v.lang.toLowerCase();
-          if (maleHint.test(n)) s += 100;
-          if (femaleHint.test(n)) s -= 80;
-          if (l.startsWith('es-bo')) s += 20;
-          else if (l.startsWith('es-419') || l.startsWith('es-pe') || l.startsWith('es-mx')) s += 12;
-          if (!v.localService) s += 5;
-          return s;
-        };
-        return score(b) - score(a);
-      });
-      utterance.voice = spanishVoices[0];
-    }
-
-    if (onDone) utterance.onend = onDone;
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // ignore speechSynthesis errors on unsupported mobile browsers
-  }
+  tataVoice.speak(text, { onEnd: onDone, forceUnmute: true });
 }
 
 export const PlazaHistoryVideo: React.FC<PlazaHistoryVideoProps> = ({

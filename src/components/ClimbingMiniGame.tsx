@@ -11,9 +11,11 @@ import { ASSETS } from '../data/defaultStages';
 import { AvatarConfig } from '../types/game';
 import { drawRoundRect, observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface ClimbingMiniGameProps {
   playerAvatar: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -884,7 +886,7 @@ export const ClimbingMiniGame: React.FC<ClimbingMiniGameProps> = ({
 
       anim.screenHolds = nextScreenHolds;
 
-      // 5. Animated Climber Figure (using player avatar palette)
+      // 5. Animated Climber Figure (matching player avatar outfit, headwear, hair & palette)
       ctx.save();
       ctx.translate(climberPx, climberPy - 10);
       const isMoving = anim.moveProgress < 1;
@@ -918,37 +920,120 @@ export const ClimbingMiniGame: React.FC<ClimbingMiniGameProps> = ({
         azul: '#1d4e89',
         armonia: '#7b4824'
       };
-      const paletteHat: Record<AvatarConfig['palette'], string> = {
+      const paletteAccent: Record<AvatarConfig['palette'], string> = {
         tierra: '#f5b700',
         verde: '#52b788',
         azul: '#4ea8de',
         armonia: '#f5b700'
       };
+      const mainColor = paletteTorso[playerAvatar.palette] || '#8c3b2b';
+      const accentColor = paletteAccent[playerAvatar.palette] || '#f5b700';
 
-      // Poncho / Torso
-      ctx.fillStyle = paletteTorso[playerAvatar.palette] || '#8c3b2b';
-      ctx.beginPath();
-      ctx.moveTo(-10, 7);
-      ctx.lineTo(-8, -11);
-      ctx.lineTo(8, -11);
-      ctx.lineTo(10, 7);
-      ctx.closePath();
-      ctx.fill();
+      // Flowing guardian cape behind torso if selected
+      if (playerAvatar.outfit === 'capa_guardian') {
+        ctx.fillStyle = '#0F2C4C';
+        ctx.beginPath();
+        ctx.moveTo(-8, -10);
+        ctx.lineTo(-14, 14);
+        ctx.lineTo(14, 14);
+        ctx.lineTo(8, -10);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Outfit torso / skirt silhouettes
+      if (playerAvatar.outfit === 'pollera_manta') {
+        // Manta blouse + pleated pollera skirt
+        ctx.fillStyle = mainColor;
+        ctx.fillRect(-8, -11, 16, 11);
+        ctx.fillStyle = accentColor;
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(8, 0);
+        ctx.lineTo(13, 12);
+        ctx.lineTo(-13, 12);
+        ctx.closePath();
+        ctx.fill();
+      } else if (playerAvatar.outfit === 'poncho_tejido') {
+        ctx.fillStyle = mainColor;
+        ctx.beginPath();
+        ctx.moveTo(-9, -11);
+        ctx.lineTo(9, -11);
+        ctx.lineTo(13, 4);
+        ctx.lineTo(0, 10);
+        ctx.lineTo(-13, 4);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Vest / classic torso
+        ctx.fillStyle = mainColor;
+        ctx.beginPath();
+        ctx.moveTo(-10, 7);
+        ctx.lineTo(-8, -11);
+        ctx.lineTo(8, -11);
+        ctx.lineTo(10, 7);
+        ctx.closePath();
+        ctx.fill();
+      }
 
       // Harness waist belt + chalk glow if active
       ctx.fillStyle = state.chalkActive ? '#fde047' : '#f5b700';
-      ctx.fillRect(-9, 3, 18, 3);
+      ctx.fillRect(-9, 2, 18, 3);
 
-      // Head + Chullo/Helmet
+      // Braids or flowing hair behind head
+      const hairCol = playerAvatar.hairColor || '#1B1817';
+      if (playerAvatar.hairStyle === 'trenzas_tullmas' || playerAvatar.hairStyle === 'trenzas_dobles') {
+        ctx.strokeStyle = hairCol;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-6, -15);
+        ctx.lineTo(-9, -2);
+        ctx.moveTo(6, -15);
+        ctx.lineTo(9, -2);
+        ctx.stroke();
+      } else if (playerAvatar.hairStyle === 'cabello_suelto') {
+        ctx.fillStyle = hairCol;
+        ctx.beginPath();
+        ctx.arc(0, -15, 8.2, Math.PI * 0.9, Math.PI * 2.1);
+        ctx.fill();
+      }
+
+      // Head
       ctx.fillStyle = playerAvatar.skinTone || '#d19a6c';
       ctx.beginPath();
       ctx.arc(0, -17, 7, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = paletteHat[playerAvatar.palette] || '#f5b700';
+      // Hair crown
+      ctx.fillStyle = hairCol;
       ctx.beginPath();
-      ctx.arc(0, -19, 7.6, Math.PI, 0);
+      ctx.arc(0, -18.5, 7, Math.PI, 0);
       ctx.fill();
+
+      // Headwear
+      if (playerAvatar.headwear === 'sombrero_bombin') {
+        ctx.fillStyle = '#29211B';
+        ctx.fillRect(-10, -22, 20, 2.5);
+        ctx.fillRect(-6, -28, 12, 6);
+        ctx.fillStyle = accentColor;
+        ctx.fillRect(-6, -23.5, 12, 1.5);
+      } else if (playerAvatar.headwear === 'vincha_chakana') {
+        ctx.fillStyle = accentColor;
+        ctx.fillRect(-7.5, -22, 15, 3);
+        ctx.fillStyle = '#FFF8E7';
+        ctx.fillRect(-1.5, -22, 3, 3);
+      } else if (playerAvatar.headwear === 'chullo') {
+        ctx.fillStyle = accentColor;
+        ctx.beginPath();
+        ctx.arc(0, -19, 7.6, Math.PI, 0);
+        ctx.fill();
+        ctx.fillRect(-7.5, -19, 3, 6);
+        ctx.fillRect(4.5, -19, 3, 6);
+        ctx.fillStyle = '#FFF8E7';
+        ctx.beginPath();
+        ctx.arc(0, -27.5, 2.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
 
       // 6. Dust / Chalk / Pebble / Gold Particles
@@ -1149,16 +1234,24 @@ export const ClimbingMiniGame: React.FC<ClimbingMiniGameProps> = ({
         </div>
       )}
 
-      {/* Feedback Banner */}
+      {/* Feedback Banner with Full-Body Climber Avatar */}
       <div
-        className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm border ${
+        className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs sm:text-sm border ${
           won
             ? 'bg-[#1E4D3B]/65 border-[#52B788] text-[#ECFDF5]'
             : 'bg-[#081523] border-white/10 text-[#D8D3C8]'
         }`}
       >
-        {won && <CheckCircle2 className="w-4 h-4 text-[#52B788] shrink-0" />}
-        <span>{statusMsg}</span>
+        <AymaraFullBodyAvatar
+          config={playerAvatar}
+          pose={won ? 'cheer' : 'climb'}
+          className="w-11 h-[68px] shrink-0"
+          showGroundShadow={false}
+        />
+        <div className="min-w-0 flex items-start gap-2">
+          {won && <CheckCircle2 className="w-4 h-4 text-[#52B788] shrink-0 mt-0.5" />}
+          <span className="leading-snug">{statusMsg}</span>
+        </div>
       </div>
     </div>
   );

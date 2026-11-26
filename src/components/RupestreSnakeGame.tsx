@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2, Palette, RotateCcw, Sparkles } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { observeElementResize } from '../utils/canvasHelpers';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface RupestreSnakeGameProps {
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -44,6 +48,8 @@ const SNAKE_NODES: Array<{ x: number; y: number; isHead?: boolean; headAngle?: n
 ];
 
 export const RupestreSnakeGame: React.FC<RupestreSnakeGameProps> = ({
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -58,6 +64,7 @@ export const RupestreSnakeGame: React.FC<RupestreSnakeGameProps> = ({
   const isDraggingRef = useRef(false);
   const [pigment, setPigment] = useState<PigmentId>('rojo');
   const [connectedCount, setConnectedCount] = useState(alreadySolved ? SNAKE_NODES.length : 1);
+  const [isPainting, setIsPainting] = useState(false);
 
   const solved = connectedCount >= SNAKE_NODES.length;
 
@@ -442,6 +449,7 @@ export const RupestreSnakeGame: React.FC<RupestreSnakeGameProps> = ({
           ref={canvasRef}
           onPointerDown={(e) => {
             isDraggingRef.current = true;
+            setIsPainting(true);
             tryHitNextDot(e.clientX, e.clientY);
           }}
           onPointerMove={(e) => {
@@ -449,10 +457,12 @@ export const RupestreSnakeGame: React.FC<RupestreSnakeGameProps> = ({
           }}
           onPointerUp={() => {
             isDraggingRef.current = false;
+            setIsPainting(false);
             pointerPosRef.current = null;
           }}
           onPointerLeave={() => {
             isDraggingRef.current = false;
+            setIsPainting(false);
             pointerPosRef.current = null;
           }}
           className="block w-full h-full touch-none cursor-crosshair"
@@ -460,23 +470,40 @@ export const RupestreSnakeGame: React.FC<RupestreSnakeGameProps> = ({
       </div>
 
       {!solved && (
-        <div className="rounded-xl bg-[#081523] border border-[#D9A05B]/35 px-4 py-2.5 text-center text-xs sm:text-sm text-[#FFD166]">
-          Une los puntos en orden (1 → {SNAKE_NODES.length}) para restaurar la Serpiente de 3 Cabezas (
-          <span className="text-[#E2DDD2]">{PIGMENTS[pigment].mineral}</span>)
+        <div className="rounded-xl bg-[#081523] border border-[#D9A05B]/35 px-3.5 py-2 flex items-center gap-3 text-xs sm:text-sm text-[#FFD166]">
+          <AymaraFullBodyAvatar
+            config={playerAvatar}
+            pose={isPainting ? 'paint' : 'idle'}
+            heldItem="brush"
+            className="w-11 h-[68px] shrink-0"
+            showGroundShadow={false}
+          />
+          <p className="leading-snug">
+            <strong className="text-[#FFF8E7]">{playerName}</strong> traza con pigmento mineral: une los puntos en orden (1 → {SNAKE_NODES.length}) para restaurar la Serpiente de 3 Cabezas (<span className="text-[#E2DDD2]">{PIGMENTS[pigment].mineral}</span>).
+          </p>
         </div>
       )}
 
       {solved && (
         <div className="rounded-xl bg-gradient-to-r from-[#1E4D3B]/80 via-[#17334E]/85 to-[#2B1D0E]/85 border border-[#F5B700]/65 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
-              <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
-              <span>¡Arte rupestre Yaya-Mama restaurado!</span>
+          <div className="flex items-center gap-3">
+            <AymaraFullBodyAvatar
+              config={playerAvatar}
+              pose="cheer"
+              heldItem="brush"
+              className="w-11 h-[68px] shrink-0"
+              showGroundShadow={false}
+            />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-[#FFD166]">
+                <CheckCircle2 className="w-4 h-4 text-[#52B788]" />
+                <span>¡Arte rupestre Yaya-Mama (tradición padre-madre) restaurado!</span>
+              </div>
+              <p className="text-xs text-[#E2DDD2]">
+                <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
+                Devolviste su trazo sagrado en {PIGMENTS[pigment].label} a la Serpiente de 3 Cabezas de Qillqantiji (abrigo rocoso pintado).
+              </p>
             </div>
-            <p className="text-xs text-[#E2DDD2]">
-              <Sparkles className="w-3.5 h-3.5 inline text-[#F5B700] mr-1" />
-              Devolviste su trazo sagrado en {PIGMENTS[pigment].label} a la Serpiente de 3 Cabezas de Qillqantiji.
-            </p>
           </div>
 
           <button

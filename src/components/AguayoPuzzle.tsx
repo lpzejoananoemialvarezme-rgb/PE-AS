@@ -1,11 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Eye, Shuffle, CheckCircle2 } from 'lucide-react';
 import { ASSETS } from '../data/defaultStages';
+import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { soundEngine } from '../utils/sound';
+import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
 interface AguayoPuzzleProps {
   imageUrl: string;
   caption: string;
+  playerAvatar?: AvatarConfig;
+  playerName?: string;
   alreadySolved?: boolean;
   onSolved: () => void;
 }
@@ -27,6 +31,8 @@ function createShuffledBoard(): number[] {
 export const AguayoPuzzle: React.FC<AguayoPuzzleProps> = ({
   imageUrl,
   caption,
+  playerAvatar = DEFAULT_AVATAR,
+  playerName = 'Viajero',
   alreadySolved = false,
   onSolved
 }) => {
@@ -195,17 +201,33 @@ export const AguayoPuzzle: React.FC<AguayoPuzzleProps> = ({
         )}
       </div>
 
-      {/* Status Instruction */}
-      {isSolved ? (
-        <div className="flex items-center justify-center gap-2 text-sm font-semibold text-[#52B788] pt-1">
-          <CheckCircle2 className="w-4 h-4" />
-          ¡Aguayo sagrado reconstruido en {moves} movimientos!
-        </div>
-      ) : (
-        <p className="text-xs text-center text-[#A3B1BF]">
-          Toca una pieza y luego toca otra para intercambiarlas hasta completar el tejido (1 al 9).
-        </p>
-      )}
+      {/* Status Instruction with Full-Body Weaver Avatar */}
+      <div
+        className={`rounded-xl px-3.5 py-2 flex items-center gap-3 border ${
+          isSolved
+            ? 'bg-[#1E4D3B]/60 border-[#52B788] text-[#ECFDF5]'
+            : 'bg-[#081523] border-white/10 text-[#A3B1BF]'
+        }`}
+      >
+        <AymaraFullBodyAvatar
+          config={playerAvatar}
+          pose={isSolved ? 'cheer' : 'idle'}
+          className="w-11 h-[68px] shrink-0"
+          showGroundShadow={false}
+        />
+        {isSolved ? (
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#52B788]">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>
+              ¡{playerName}, reconstruiste el aguayo (tejido tradicional andino) en {moves} movimientos!
+            </span>
+          </div>
+        ) : (
+          <p className="text-xs leading-snug">
+            <strong className="text-[#FFD166]">{playerName}</strong> teje el aguayo (tejido andino): toca una pieza y luego otra para intercambiarlas del 1 al 9.
+          </p>
+        )}
+      </div>
     </div>
   );
 };
