@@ -90,6 +90,10 @@ async function startServer() {
   const app = express();
   app.use(express.json({ limit: '64kb' }));
 
+  app.get('/api/tata-tts/status', (_req, res) => {
+    res.json({ available: Boolean(getGeminiClient()) });
+  });
+
   app.post('/api/tata-tts', async (req, res) => {
     const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     if (!rawText) {

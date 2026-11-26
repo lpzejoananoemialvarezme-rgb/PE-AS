@@ -41,6 +41,9 @@ export const NarratorDock: React.FC<NarratorDockProps> = ({
   }, []);
 
   useEffect(() => {
+    if (message) {
+      tataVoice.preload(message);
+    }
     if (autoSpeak && message && voiceSupported && !soundEngine.isMuted()) {
       tataVoice.speak(message);
     }

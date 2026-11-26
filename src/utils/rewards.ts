@@ -1,5 +1,6 @@
 import { PlayerProgress, StageData, TravelerProfileInfo, TravelerTrait } from '../types/game';
 import { TRAVELER_PROFILES } from '../data/defaultStages';
+import { assetUrl } from './assetUrl';
 
 export function generateVoucherCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -767,8 +768,9 @@ export function downloadTouristGuide(
   triggerHtmlDownload('Guia-de-Viaje-Penas-LaPaz.html', html);
 }
 
-export const COMMUNITY_VOUCHER_IMAGE =
-  '/assets/aistudio/WhatsApp_Image_2026-11-23_at_21.41.29_ba509f74.jpeg';
+export const COMMUNITY_VOUCHER_IMAGE = assetUrl(
+  '/assets/aistudio/WhatsApp_Image_2026-11-23_at_21.41.29_ba509f74.jpeg'
+);
 
 export async function downloadCommunityVoucher(progress: PlayerProgress): Promise<void> {
   const traveler = progress.playerName.trim() || 'Viajero de Peñas';

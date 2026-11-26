@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { AvatarConfig, DEFAULT_AVATAR } from '../types/game';
 import { observeElementResize } from '../utils/canvasHelpers';
+import { assetUrl } from '../utils/assetUrl';
 import { soundEngine } from '../utils/sound';
 import { AymaraFullBodyAvatar } from './AymaraFullBodyAvatar';
 
@@ -161,19 +162,19 @@ const STATIC_LANDMARKS: LandmarkHotspot[] = [
 
 const REFERENCE_PHOTOS = [
   {
-    src: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.22.58_97537be3.jpeg',
+    src: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.22.58_97537be3.jpeg'),
     caption: 'Cartel original del Mirador Wiraconi sobre roca con líquenes'
   },
   {
-    src: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.53_4ace7535.jpeg',
+    src: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.53_4ace7535.jpeg'),
     caption: 'Vista hacia el pueblo de Peñas, la carretera del Altiplano y los nevados'
   },
   {
-    src: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.17_2f36fcc8.jpeg',
+    src: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.17_2f36fcc8.jpeg'),
     caption: 'Farallón granítico a la izquierda y la Cordillera Real en el horizonte'
   },
   {
-    src: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.44_260fc684.jpeg',
+    src: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.44_260fc684.jpeg'),
     caption: 'Panorámica completa desde el borde rocoso del Mirador Nido de Cóndor'
   }
 ];

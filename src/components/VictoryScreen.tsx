@@ -147,6 +147,9 @@ export const VictoryScreen: React.FC<VictoryScreenProps> = ({
     if (!soundEngine.isMuted() && !soundEngine.isMusicPlaying()) {
       soundEngine.startMusic();
     }
+    tataVoice.preload(
+      'Felicidades y gracias por resguardar la memoria de nuestro pueblo, te esperamos en Peñas para celebrar.'
+    );
     const unsub = tataVoice.subscribe((speaking) => {
       setIsClosingSpeaking(speaking);
     });

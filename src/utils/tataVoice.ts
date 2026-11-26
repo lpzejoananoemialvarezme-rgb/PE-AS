@@ -2,18 +2,28 @@ import { soundEngine } from './sound';
 
 type VoiceListener = (speaking: boolean) => void;
 
+const MAX_CLIENT_AUDIO_CACHE = 32;
+
 class TataVoiceEngine {
   private speaking = false;
   private listeners = new Set<VoiceListener>();
   private cachedVoices: SpeechSynthesisVoice[] = [];
-  private audioCache = new Map<string, string>();
-  private activeAudio: HTMLAudioElement | null = null;
+  private audioDataCache = new Map<string, ArrayBuffer>();
+  private audioCtx: AudioContext | null = null;
+  private activeSource: AudioBufferSourceNode | null = null;
+  private sharedAudio: HTMLAudioElement | null = null;
+  private activeObjectUrl: string | null = null;
+  private activeUtterance: SpeechSynthesisUtterance | null = null;
   private activeAbort: AbortController | null = null;
   private sequenceId = 0;
   private pauseTimer: number | null = null;
+  private keepAliveTimer: number | null = null;
+  private startGuardTimer: number | null = null;
   private initialized = false;
+  private audioUnlocked = false;
   private onCompleteCallback: (() => void) | null = null;
-  private serverTtsAvailable = true;
+  private serverTtsAvailable: boolean | null = null;
+  private serverProbePromise: Promise<boolean> | null = null;
 
   constructor() {
     this.init();
@@ -43,14 +53,116 @@ class TataVoiceEngine {
         }
       }
 
+      const unlockOnGesture = () => {
+        this.unlockMobileAudio();
+        window.removeEventListener('pointerdown', unlockOnGesture, true);
+        window.removeEventListener('touchstart', unlockOnGesture, true);
+        window.removeEventListener('click', unlockOnGesture, true);
+        window.removeEventListener('keydown', unlockOnGesture, true);
+      };
+
+      window.addEventListener('pointerdown', unlockOnGesture, { capture: true, passive: true });
+      window.addEventListener('touchstart', unlockOnGesture, { capture: true, passive: true });
+      window.addEventListener('click', unlockOnGesture, { capture: true, passive: true });
+      window.addEventListener('keydown', unlockOnGesture, { capture: true, passive: true });
+
       soundEngine.subscribe(() => {
         if (soundEngine.isMuted() && this.speaking) {
           this.stop();
         }
       });
+
+      void this.probeServerTts();
     } catch {
       // Safe fallback
     }
+  }
+
+  private ensureAudioContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    if (!this.audioCtx) {
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return null;
+        this.audioCtx = new AudioCtx();
+      } catch {
+        return null;
+      }
+    }
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
+    }
+    return this.audioCtx;
+  }
+
+  public unlockMobileAudio(): void {
+    if (typeof window === 'undefined') return;
+
+    const ctx = this.ensureAudioContext();
+    if (ctx && !this.audioUnlocked) {
+      this.audioUnlocked = true;
+      try {
+        const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch {
+        // Ignore silent buffer unlock issues
+      }
+    }
+
+    if (!this.sharedAudio && typeof Audio !== 'undefined') {
+      try {
+        const el = new Audio();
+        el.preload = 'auto';
+        el.setAttribute('playsinline', 'true');
+        el.setAttribute('webkit-playsinline', 'true');
+        this.sharedAudio = el;
+      } catch {
+        // Ignore restricted Audio element environments
+      }
+    }
+  }
+
+  private async probeServerTts(): Promise<boolean> {
+    if (this.serverTtsAvailable !== null) {
+      return this.serverTtsAvailable;
+    }
+    if (this.serverProbePromise) {
+      return this.serverProbePromise;
+    }
+    if (typeof window === 'undefined' || typeof fetch === 'undefined') {
+      this.serverTtsAvailable = false;
+      return false;
+    }
+
+    this.serverProbePromise = (async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 1600);
+      try {
+        const res = await fetch('/api/tata-tts/status', {
+          method: 'GET',
+          signal: controller.signal
+        });
+        if (!res.ok) {
+          this.serverTtsAvailable = false;
+          return false;
+        }
+        const data = (await res.json()) as { available?: boolean };
+        this.serverTtsAvailable = Boolean(data?.available);
+        return this.serverTtsAvailable;
+      } catch {
+        this.serverTtsAvailable = false;
+        return false;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    })();
+
+    return this.serverProbePromise;
   }
 
   public isSupported(): boolean {
@@ -101,13 +213,16 @@ class TataVoiceEngine {
       }
     }
 
-    const spanish = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith('es'));
+    const spanish = voices.filter((v) => {
+      const norm = (v.lang || '').replace(/_/g, '-').toLowerCase();
+      return norm.startsWith('es') || norm.startsWith('spa');
+    });
     if (spanish.length === 0) return null;
 
     const scoreVoice = (voice: SpeechSynthesisVoice): number => {
       const name = (voice.name || '').toLowerCase();
       const uri = (voice.voiceURI || '').toLowerCase();
-      const lang = (voice.lang || '').toLowerCase();
+      const lang = (voice.lang || '').replace(/_/g, '-').toLowerCase();
       let score = 0;
 
       // Strongly avoid robotic / low-fi synthesizers
@@ -118,7 +233,7 @@ class TataVoiceEngine {
       // Strongly prefer neural / natural / enhanced voices
       if (/natural|neural|online|enhanced|premium|wavenet|studio/.test(name)) {
         score += 140;
-      } else if (/google|microsoft|apple|siri/.test(name)) {
+      } else if (/google|microsoft|apple|siri|samsung/.test(name)) {
         score += 50;
       }
 
@@ -140,7 +255,7 @@ class TataVoiceEngine {
         score -= 60;
       }
 
-      if (/latin|latino|latam|estados unidos|mexico|méxico|colombia|peru|perú|bolivia|argentina|chile/.test(name)) {
+      if (/latin|latino|latam|estados unidos|united states|mexico|méxico|colombia|peru|perú|bolivia|argentina|chile/.test(name)) {
         score += 55;
       }
 
@@ -152,13 +267,11 @@ class TataVoiceEngine {
       ) {
         score += 110;
       }
-      if (
-        /\b(alvaro|álvaro)\b/.test(name)
-      ) {
+      if (/\b(alvaro|álvaro)\b/.test(name)) {
         score += 70;
       }
       if (
-        /\b(sabina|paulina|helena|elena|monica|mónica|laura|maria|maría|sofia|sofía|lucia|lucía|paloma|dalia|camila|salome|salomé|catalina|valeria|isabela|carmen|jimena|ximena|andrea|elena|female|mujer|woman)\b/.test(
+        /\b(sabina|paulina|helena|elena|monica|mónica|laura|maria|maría|sofia|sofía|lucia|lucía|paloma|dalia|camila|salome|salomé|catalina|valeria|isabela|carmen|jimena|ximena|andrea|female|mujer|woman)\b/.test(
           name
         )
       ) {
@@ -206,39 +319,113 @@ class TataVoiceEngine {
     return merged;
   }
 
+  private clearTimers(): void {
+    if (typeof window === 'undefined') return;
+    if (this.pauseTimer !== null) {
+      window.clearTimeout(this.pauseTimer);
+      this.pauseTimer = null;
+    }
+    if (this.keepAliveTimer !== null) {
+      window.clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
+    if (this.startGuardTimer !== null) {
+      window.clearTimeout(this.startGuardTimer);
+      this.startGuardTimer = null;
+    }
+  }
+
   public stop(): void {
     this.sequenceId += 1;
     this.onCompleteCallback = null;
+    this.clearTimers();
+    this.activeUtterance = null;
 
     if (this.activeAbort) {
       this.activeAbort.abort();
       this.activeAbort = null;
     }
 
-    if (this.activeAudio) {
+    if (this.activeSource) {
       try {
-        this.activeAudio.pause();
-        this.activeAudio.currentTime = 0;
+        this.activeSource.onended = null;
+        this.activeSource.stop();
+        this.activeSource.disconnect();
+      } catch {
+        // Ignore already stopped source
+      }
+      this.activeSource = null;
+    }
+
+    if (this.sharedAudio) {
+      try {
+        this.sharedAudio.onended = null;
+        this.sharedAudio.onerror = null;
+        this.sharedAudio.pause();
+        this.sharedAudio.currentTime = 0;
       } catch {
         // Ignore media reset error
       }
-      this.activeAudio = null;
     }
 
-    if (this.pauseTimer !== null && typeof window !== 'undefined') {
-      window.clearTimeout(this.pauseTimer);
-      this.pauseTimer = null;
+    if (this.activeObjectUrl) {
+      try {
+        URL.revokeObjectURL(this.activeObjectUrl);
+      } catch {
+        // Ignore revoke error
+      }
+      this.activeObjectUrl = null;
     }
 
     try {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel();
+        }
       }
     } catch {
       // Ignore mobile WebView errors
     }
 
     this.setSpeaking(false);
+  }
+
+  public preload(rawText: string): void {
+    if (this.serverTtsAvailable === false || typeof fetch === 'undefined') return;
+    const cleaned = this.cleanForSpeech(rawText);
+    if (!cleaned || this.audioDataCache.has(cleaned)) return;
+
+    void this.probeServerTts().then((available) => {
+      if (!available || this.audioDataCache.has(cleaned)) return;
+      void fetch('/api/tata-tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleaned })
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            if (res.status === 404 || res.status === 405 || res.status === 503) {
+              this.serverTtsAvailable = false;
+            }
+            return;
+          }
+          const buffer = await res.arrayBuffer();
+          if (buffer.byteLength > 44) {
+            this.storeAudioCache(cleaned, buffer);
+          }
+        })
+        .catch(() => {
+          // Ignore silent prefetch errors
+        });
+    });
+  }
+
+  private storeAudioCache(key: string, buffer: ArrayBuffer): void {
+    if (this.audioDataCache.size >= MAX_CLIENT_AUDIO_CACHE) {
+      const oldestKey = this.audioDataCache.keys().next().value;
+      if (oldestKey) this.audioDataCache.delete(oldestKey);
+    }
+    this.audioDataCache.set(key, buffer);
   }
 
   private speakWithBrowserFallback(cleanedText: string, currentSeq: number): void {
@@ -261,65 +448,146 @@ class TataVoiceEngine {
     }
 
     const voice = this.pickElderMaleSpanishVoice();
+    let anyChunkStarted = false;
+
+    const finishSpeech = (invokeCallback: boolean) => {
+      if (currentSeq !== this.sequenceId) return;
+      this.clearTimers();
+      this.activeUtterance = null;
+      this.setSpeaking(false);
+      const done = this.onCompleteCallback;
+      this.onCompleteCallback = null;
+      if (invokeCallback) done?.();
+    };
+
+    // Chrome / Android watchdog so long lines never pause mid-sentence
+    this.keepAliveTimer = window.setInterval(() => {
+      if (currentSeq !== this.sequenceId) return;
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch {
+        // Ignore resume errors
+      }
+    }, 10000);
+
+    // If a mobile browser silently ignores un-gestured auto-speak, clear active UI state cleanly
+    this.startGuardTimer = window.setTimeout(() => {
+      if (
+        currentSeq === this.sequenceId &&
+        !anyChunkStarted &&
+        !window.speechSynthesis.speaking &&
+        !window.speechSynthesis.pending
+      ) {
+        finishSpeech(false);
+      }
+    }, 950);
+
     const speakChunk = (index: number) => {
       if (currentSeq !== this.sequenceId) return;
       if (index >= chunks.length) {
-        this.setSpeaking(false);
-        const done = this.onCompleteCallback;
-        this.onCompleteCallback = null;
-        done?.();
+        finishSpeech(true);
         return;
       }
 
       try {
         const utterance = new SpeechSynthesisUtterance(chunks[index]);
+        this.activeUtterance = utterance;
         utterance.lang = voice?.lang || 'es-BO';
         if (voice) utterance.voice = voice;
-        // Warm elder voice at a natural, fluent conversational pace
-        utterance.pitch = 0.84;
-        utterance.rate = 0.96;
-        utterance.volume = 0.98;
+        // Warm elder grandfather voice at a natural, fluent conversational pace
+        utterance.pitch = 0.8;
+        utterance.rate = 0.94;
+        utterance.volume = 1;
 
         utterance.onstart = () => {
-          if (currentSeq === this.sequenceId) {
-            this.setSpeaking(true);
+          if (currentSeq !== this.sequenceId) return;
+          anyChunkStarted = true;
+          if (this.startGuardTimer !== null) {
+            window.clearTimeout(this.startGuardTimer);
+            this.startGuardTimer = null;
           }
+          this.setSpeaking(true);
         };
 
         utterance.onend = () => {
           if (currentSeq !== this.sequenceId) return;
           this.pauseTimer = window.setTimeout(() => {
             speakChunk(index + 1);
-          }, 120);
+          }, 95);
         };
 
         utterance.onerror = () => {
-          if (currentSeq === this.sequenceId) {
-            this.setSpeaking(false);
-            this.onCompleteCallback = null;
-          }
+          finishSpeech(false);
         };
 
         this.setSpeaking(true);
         window.speechSynthesis.speak(utterance);
       } catch {
-        this.setSpeaking(false);
+        finishSpeech(false);
       }
     };
 
     speakChunk(0);
   }
 
-  private async playAudioUrl(objectUrl: string, currentSeq: number): Promise<boolean> {
-    if (currentSeq !== this.sequenceId || typeof Audio === 'undefined') return false;
+  private async playAudioBuffer(wavBuffer: ArrayBuffer, currentSeq: number): Promise<boolean> {
+    if (currentSeq !== this.sequenceId) return false;
 
-    const audio = new Audio(objectUrl);
+    const ctx = this.ensureAudioContext();
+    if (ctx) {
+      try {
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        const decoded = await ctx.decodeAudioData(wavBuffer.slice(0));
+        if (currentSeq !== this.sequenceId) return true;
+
+        const source = ctx.createBufferSource();
+        source.buffer = decoded;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.98;
+        source.connect(gain);
+        gain.connect(ctx.destination);
+
+        this.activeSource = source;
+        source.onended = () => {
+          if (currentSeq !== this.sequenceId) return;
+          this.activeSource = null;
+          this.setSpeaking(false);
+          const done = this.onCompleteCallback;
+          this.onCompleteCallback = null;
+          done?.();
+        };
+
+        this.setSpeaking(true);
+        source.start(0);
+        return true;
+      } catch {
+        // Fall through to HTMLAudioElement playback
+      }
+    }
+
+    if (typeof Audio === 'undefined') return false;
+
+    const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+    const objectUrl = URL.createObjectURL(blob);
+    this.activeObjectUrl = objectUrl;
+
+    const audio = this.sharedAudio || new Audio();
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
     audio.volume = 0.98;
-    this.activeAudio = audio;
+    audio.src = objectUrl;
+    this.sharedAudio = audio;
 
     audio.onended = () => {
       if (currentSeq !== this.sequenceId) return;
-      this.activeAudio = null;
+      if (this.activeObjectUrl) {
+        URL.revokeObjectURL(this.activeObjectUrl);
+        this.activeObjectUrl = null;
+      }
       this.setSpeaking(false);
       const done = this.onCompleteCallback;
       this.onCompleteCallback = null;
@@ -328,7 +596,10 @@ class TataVoiceEngine {
 
     audio.onerror = () => {
       if (currentSeq !== this.sequenceId) return;
-      this.activeAudio = null;
+      if (this.activeObjectUrl) {
+        URL.revokeObjectURL(this.activeObjectUrl);
+        this.activeObjectUrl = null;
+      }
       this.setSpeaking(false);
       this.onCompleteCallback = null;
     };
@@ -342,8 +613,11 @@ class TataVoiceEngine {
       this.setSpeaking(true);
       return true;
     } catch (err) {
-      this.activeAudio = null;
-      // If autoplay was blocked by browser policy, don't fallback to robotic speech loudly
+      if (this.activeObjectUrl) {
+        URL.revokeObjectURL(this.activeObjectUrl);
+        this.activeObjectUrl = null;
+      }
+      // Autoplay blocked by browser policy
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
         this.setSpeaking(false);
         this.onCompleteCallback = null;
@@ -368,14 +642,15 @@ class TataVoiceEngine {
     const cleaned = this.cleanForSpeech(rawText);
     if (!cleaned) return false;
 
+    this.unlockMobileAudio();
     this.stop();
     const currentSeq = this.sequenceId;
     this.onCompleteCallback = options?.onEnd || null;
 
-    const cachedUrl = this.audioCache.get(cleaned);
-    if (cachedUrl) {
+    const cachedWav = this.audioDataCache.get(cleaned);
+    if (cachedWav) {
       this.setSpeaking(true);
-      void this.playAudioUrl(cachedUrl, currentSeq).then((handled) => {
+      void this.playAudioBuffer(cachedWav, currentSeq).then((handled) => {
         if (!handled && currentSeq === this.sequenceId) {
           this.speakWithBrowserFallback(cleaned, currentSeq);
         }
@@ -383,7 +658,9 @@ class TataVoiceEngine {
       return true;
     }
 
-    if (!this.serverTtsAvailable) {
+    // If static deployment (e.g. GitHub Pages) or TTS backend unavailable,
+    // run browser speechSynthesis SYNCHRONOUSLY to preserve mobile user-gesture activation!
+    if (this.serverTtsAvailable === false) {
       this.speakWithBrowserFallback(cleaned, currentSeq);
       return true;
     }
@@ -401,17 +678,17 @@ class TataVoiceEngine {
       .then(async (res) => {
         if (currentSeq !== this.sequenceId) return;
         if (!res.ok) {
-          if (res.status === 503) {
+          if (res.status === 404 || res.status === 405 || res.status === 503) {
             this.serverTtsAvailable = false;
           }
           throw new Error(`TTS_${res.status}`);
         }
-        const blob = await res.blob();
-        if (currentSeq !== this.sequenceId || blob.size === 0) return;
+        this.serverTtsAvailable = true;
+        const wavBuffer = await res.arrayBuffer();
+        if (currentSeq !== this.sequenceId || wavBuffer.byteLength <= 44) return;
 
-        const objectUrl = URL.createObjectURL(blob);
-        this.audioCache.set(cleaned, objectUrl);
-        const handled = await this.playAudioUrl(objectUrl, currentSeq);
+        this.storeAudioCache(cleaned, wavBuffer);
+        const handled = await this.playAudioBuffer(wavBuffer, currentSeq);
         if (!handled && currentSeq === this.sequenceId) {
           this.speakWithBrowserFallback(cleaned, currentSeq);
         }

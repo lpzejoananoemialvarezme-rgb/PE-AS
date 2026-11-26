@@ -290,6 +290,44 @@ class AndeanSoundEngine {
   private loopsCompleted = 0;
   private listeners = new Set<() => void>();
 
+  private unlockBound = false;
+
+  constructor() {
+    this.bindFirstGestureUnlock();
+  }
+
+  private bindFirstGestureUnlock() {
+    if (this.unlockBound || typeof window === 'undefined') return;
+    this.unlockBound = true;
+
+    const unlock = () => {
+      const ctx = this.ensureContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      if (ctx) {
+        try {
+          const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.start(0);
+        } catch {
+          // Ignore unlock probe failure
+        }
+      }
+      window.removeEventListener('pointerdown', unlock, true);
+      window.removeEventListener('touchstart', unlock, true);
+      window.removeEventListener('click', unlock, true);
+      window.removeEventListener('keydown', unlock, true);
+    };
+
+    window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+    window.addEventListener('touchstart', unlock, { capture: true, passive: true });
+    window.addEventListener('click', unlock, { capture: true, passive: true });
+    window.addEventListener('keydown', unlock, { capture: true, passive: true });
+  }
+
   private notify() {
     this.listeners.forEach((cb) => cb());
   }

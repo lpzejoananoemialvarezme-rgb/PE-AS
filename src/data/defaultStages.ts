@@ -1,31 +1,32 @@
 import { GameTexts, StageData, TravelerProfileInfo, TravelerTrait } from '../types/game';
+import { assetUrl } from '../utils/assetUrl';
 
 export const ASSETS = {
-  TITLE_BACKDROP: '/src/assets/images/penas_title_backdrop_1795230749733.jpg',
-  EPIC_MAP: '/src/assets/images/penas_route_map_v2_1795486424762.jpg',
-  NARRATOR_PORTRAIT: '/src/assets/images/tata_guide_portrait_1795446781980.jpg',
-  AGUAYO_PUZZLE: '/src/assets/images/penas_aguayo_puzzle_1795230749535.jpg',
-  CHURCH_INTERIOR: '/src/assets/images/game_templo_retablo_oro_1795489526990.jpg',
-  TEMPLO_PORTADA: '/src/assets/images/game_templo_portada_campanario_1795489529307.jpg',
-  PLAZA_KATARI: '/src/assets/images/game_plaza_katari_monument_1795489526189.jpg',
-  MURALES_CAFETERIA: '/src/assets/images/game_penas_murales_cafeteria_1795489530177.jpg',
-  CASTILLO_CORDILLERA: '/src/assets/images/game_penas_castillo_cordillera_1795489531412.jpg',
-  MURAL_PACHAMAMA: '/src/assets/images/game_penas_mural_pachamama_1795489534183.jpg',
-  ADVENTURE_PARK_BUS: '/src/assets/images/penas_adventure_park_bus_1795236281760.jpg',
-  MUSEUM_ARTIFACTS: '/src/assets/images/penas_museum_artifacts_1795236281290.jpg',
-  CLIFFS_GROTTO: '/src/assets/images/penas_cliffs_grotto_1795236283775.jpg',
-  PACHAMAMA_FLORA: '/src/assets/images/penas_pachamama_flora_1795446781720.jpg',
-  FOGATA_CAFETERIA: '/src/assets/images/penas_fogata_cafeteria_1795446782444.jpg',
-  KUNKUNTIJI_CAVE: '/src/assets/images/penas_kunkuntiji_cave_1795486425998.jpg',
-  QILLQANTIJI_CAVE: '/src/assets/images/penas_qillqantiji_cave_1795486426381.jpg',
-  QILLQANTIJI_SNAKE: '/assets/aistudio/image_1b2dd2b5.png',
-  CALVARIO_CARMEN: '/src/assets/images/penas_calvario_carmen_1795486425938.jpg',
-  CAMINO_PIEDRA: '/src/assets/images/penas_camino_piedra_1795534761338.jpg',
-  MIRADOR_CORDILLERA_REAL: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.30_e3415c41.jpeg',
-  MIRADOR_PUEBLO_CORDILLERA: '/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.44_260fc684.jpeg',
-  VIDEO_KATARI_BARTOLINA: '/src/assets/images/video_katari_bartolina_1781_1795477009439.jpg',
-  VIDEO_CASONA_SENTENCIA: '/src/assets/images/video_casona_sentencia_1795477009284.jpg',
-  VIDEO_RADIO_SAN_GABRIEL: '/src/assets/images/video_radio_san_gabriel_1795477010932.jpg'
+  TITLE_BACKDROP: assetUrl('/src/assets/images/penas_title_backdrop_1795230749733.jpg'),
+  EPIC_MAP: assetUrl('/src/assets/images/penas_route_map_v2_1795486424762.jpg'),
+  NARRATOR_PORTRAIT: assetUrl('/src/assets/images/tata_guide_portrait_1795446781980.jpg'),
+  AGUAYO_PUZZLE: assetUrl('/src/assets/images/penas_aguayo_puzzle_1795230749535.jpg'),
+  CHURCH_INTERIOR: assetUrl('/src/assets/images/game_templo_retablo_oro_1795489526990.jpg'),
+  TEMPLO_PORTADA: assetUrl('/src/assets/images/game_templo_portada_campanario_1795489529307.jpg'),
+  PLAZA_KATARI: assetUrl('/src/assets/images/game_plaza_katari_monument_1795489526189.jpg'),
+  MURALES_CAFETERIA: assetUrl('/src/assets/images/game_penas_murales_cafeteria_1795489530177.jpg'),
+  CASTILLO_CORDILLERA: assetUrl('/src/assets/images/game_penas_castillo_cordillera_1795489531412.jpg'),
+  MURAL_PACHAMAMA: assetUrl('/src/assets/images/game_penas_mural_pachamama_1795489534183.jpg'),
+  ADVENTURE_PARK_BUS: assetUrl('/src/assets/images/penas_adventure_park_bus_1795236281760.jpg'),
+  MUSEUM_ARTIFACTS: assetUrl('/src/assets/images/penas_museum_artifacts_1795236281290.jpg'),
+  CLIFFS_GROTTO: assetUrl('/src/assets/images/penas_cliffs_grotto_1795236283775.jpg'),
+  PACHAMAMA_FLORA: assetUrl('/src/assets/images/penas_pachamama_flora_1795446781720.jpg'),
+  FOGATA_CAFETERIA: assetUrl('/src/assets/images/penas_fogata_cafeteria_1795446782444.jpg'),
+  KUNKUNTIJI_CAVE: assetUrl('/src/assets/images/penas_kunkuntiji_cave_1795486425998.jpg'),
+  QILLQANTIJI_CAVE: assetUrl('/src/assets/images/penas_qillqantiji_cave_1795486426381.jpg'),
+  QILLQANTIJI_SNAKE: assetUrl('/assets/aistudio/image_1b2dd2b5.png'),
+  CALVARIO_CARMEN: assetUrl('/src/assets/images/penas_calvario_carmen_1795486425938.jpg'),
+  CAMINO_PIEDRA: assetUrl('/src/assets/images/penas_camino_piedra_1795534761338.jpg'),
+  MIRADOR_CORDILLERA_REAL: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.30_e3415c41.jpeg'),
+  MIRADOR_PUEBLO_CORDILLERA: assetUrl('/assets/aistudio/WhatsApp_Image_2026-11-20_at_02.23.44_260fc684.jpeg'),
+  VIDEO_KATARI_BARTOLINA: assetUrl('/src/assets/images/video_katari_bartolina_1781_1795477009439.jpg'),
+  VIDEO_CASONA_SENTENCIA: assetUrl('/src/assets/images/video_casona_sentencia_1795477009284.jpg'),
+  VIDEO_RADIO_SAN_GABRIEL: assetUrl('/src/assets/images/video_radio_san_gabriel_1795477010932.jpg')
 };
 
 export const ILLUSTRATED_GALLERY = [
@@ -75,7 +76,7 @@ export const PENAS_STORY_SCENES: StoryScenePhoto[] = [
     location: 'Plaza de Túpac Katari · Peñas',
     promoPhrase: '¡Visita Peñas, La Paz! Donde late la historia viva de Túpac Katari.',
     imageUrl: ASSETS.PLAZA_KATARI,
-    fallbackUrl: '/src/assets/images/story_plaza_katari_1795241254458.jpg'
+    fallbackUrl: assetUrl('/src/assets/images/story_plaza_katari_1795241254458.jpg')
   },
   {
     id: 'templo_colonial',

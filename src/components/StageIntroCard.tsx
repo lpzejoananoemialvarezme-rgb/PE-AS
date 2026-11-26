@@ -77,6 +77,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
     setSceneError(false);
     setOpenBulletIndex(null);
     setReadBullets([]);
+    tataVoice.preload(stage.narratorIntro);
     if (voiceSupported && !soundEngine.isMuted()) {
       tataVoice.speak(stage.narratorIntro);
     }
@@ -194,9 +195,9 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
         </svg>
 
         {/* Inner Carved Rock Content Frame */}
-        <div className="relative z-10 p-3.5 sm:p-5 space-y-4">
+        <div className="relative z-10 p-3 sm:p-5 space-y-4">
           {/* 1. Stage Scenic Backdrop with Cutout Tata Standing Directly Inside & Phrase-by-Phrase Speech Bubble */}
-          <figure className="relative overflow-hidden rounded-2xl border-2 border-[#6A645B]/85 bg-[#141619] min-h-[270px] sm:min-h-[325px] shadow-2xl flex flex-col justify-between">
+          <figure className="relative overflow-hidden rounded-2xl border-2 border-[#6A645B]/85 bg-[#141619] min-h-[260px] sm:min-h-[325px] shadow-2xl flex flex-col justify-between">
             {stage.sceneImageUrl && !sceneError ? (
               <img
                 src={stage.sceneImageUrl}
@@ -223,7 +224,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
             />
 
             {/* Top Voice & Replay Controls */}
-            <div className="relative z-10 px-4 pt-3 flex flex-wrap items-center justify-end gap-2">
+            <div className="relative z-10 px-3 sm:px-4 pt-3 flex flex-wrap items-center justify-end gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 {voiceSupported && (
                   <button
@@ -263,7 +264,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
             </div>
 
             {/* Bottom Composite Layer: Tata Cutout + Phrase-by-Phrase Speech Bubble */}
-            <div className="relative z-10 px-3 sm:px-5 pt-8 pb-2 flex items-end gap-2 sm:gap-4">
+            <div className="relative z-10 px-2.5 sm:px-5 pt-6 sm:pt-8 pb-2 flex items-end gap-2 sm:gap-4">
               <div
                 className={`shrink-0 transition-transform will-change-transform -mb-2 ${
                   isTalkingPulse || isVoicePlaying ? 'animate-tata-talk' : 'animate-tata-idle'
@@ -271,7 +272,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
               >
                 <TataCutoutCharacter
                   talking={(isTalkingPulse && !bubbleClosed) || isVoicePlaying}
-                  className="w-24 h-28 min-[380px]:w-28 min-[380px]:h-32 sm:w-36 sm:h-40"
+                  className="w-20 h-24 min-[380px]:w-24 min-[380px]:h-28 sm:w-36 sm:h-40"
                   label={texts.tataSpeakerTitle}
                 />
               </div>
@@ -279,7 +280,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
               {!bubbleClosed && (
                 <div
                   key={`phrase-${stage.id}-${phraseIndex}`}
-                  className="relative mb-2 sm:mb-4 flex-1 max-w-lg rounded-2xl border-2 border-[#D9A05B] bg-[#FFF8E7] text-[#1C1610] p-4 shadow-[0_14px_30px_rgba(0,0,0,0.55)] animate-speech-bubble"
+                  className="relative mb-2 sm:mb-4 flex-1 min-w-0 max-w-lg rounded-2xl border-2 border-[#D9A05B] bg-[#FFF8E7] text-[#1C1610] p-3 sm:p-4 shadow-[0_14px_30px_rgba(0,0,0,0.55)] animate-speech-bubble"
                 >
                   <span
                     aria-hidden="true"
@@ -295,15 +296,15 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
                     </span>
                   </div>
 
-                  <p className="text-sm sm:text-base font-medium leading-relaxed text-[#231914]">
+                  <p className="text-[13px] sm:text-base font-medium leading-relaxed text-[#231914]">
                     “{currentPhrase}”
                   </p>
 
-                  <div className="mt-3 flex items-center justify-end gap-2">
+                  <div className="mt-2.5 sm:mt-3 flex items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={handleNextPhraseOrClose}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#8C3B2B] hover:bg-[#702D1F] text-[#FFF8E7] text-xs sm:text-sm font-bold cursor-pointer transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 min-h-[38px] rounded-lg bg-[#8C3B2B] hover:bg-[#702D1F] text-[#FFF8E7] text-xs sm:text-sm font-bold cursor-pointer transition-colors shadow-sm"
                     >
                       {phraseIndex + 1 < phrases.length ? (
                         <>
@@ -337,7 +338,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
 
             {/* Row of Icon + Title Buttons Only (No Preview Text) */}
             <div
-              className={`grid gap-2.5 ${
+              className={`grid gap-2 sm:gap-2.5 ${
                 bullets.length === 1
                   ? 'grid-cols-1'
                   : bullets.length === 2
@@ -354,7 +355,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
                     type="button"
                     onClick={() => handleToggleBullet(i)}
                     aria-expanded={isOpen}
-                    className={`group relative rounded-xl border-2 p-3 flex flex-col items-center justify-center text-center gap-2 min-h-[104px] cursor-pointer transition-all active:scale-[0.97] shadow-md ${
+                    className={`group relative rounded-xl border-2 p-2 sm:p-3 flex flex-col items-center justify-center text-center gap-1.5 sm:gap-2 min-h-[96px] sm:min-h-[104px] cursor-pointer transition-all active:scale-[0.97] shadow-md ${
                       isOpen
                         ? 'bg-[#2B2010] border-[#F5B700] shadow-[0_0_20px_rgba(245,183,0,0.28)]'
                         : isRead
@@ -365,15 +366,15 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
                     {isRead && (
                       <span
                         title="Leído"
-                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#1E4D3B] border border-[#74C69D]/60 flex items-center justify-center"
+                        className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#1E4D3B] border border-[#74C69D]/60 flex items-center justify-center"
                       >
-                        <Check className="w-3 h-3 text-[#74C69D]" />
+                        <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#74C69D]" />
                       </span>
                     )}
 
                     <DidYouKnowIcon stageId={stage.id} cardIndex={i} />
 
-                    <div className="text-xs sm:text-sm font-bold text-[#FFF8E7] line-clamp-2 leading-tight w-full">
+                    <div className="text-[11px] sm:text-sm font-bold text-[#FFF8E7] line-clamp-2 leading-tight w-full">
                       {b.title}
                     </div>
                   </button>

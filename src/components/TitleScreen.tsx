@@ -33,6 +33,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const t = gameTexts.titleScreen;
 
   useEffect(() => {
+    tataVoice.preload(TATA_HOME_INTRO);
     return () => {
       tataVoice.stop();
     };

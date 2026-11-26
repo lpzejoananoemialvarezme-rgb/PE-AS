@@ -96,7 +96,7 @@ export const PlazaHistoryVideo: React.FC<PlazaHistoryVideoProps> = ({
   const lastSpokenSceneRef = useRef<number>(-1);
   const watchedNotifiedRef = useRef(false);
 
-  const supportsSpeech = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const supportsSpeech = tataVoice.isSupported();
 
   const sceneIdx = SLIDES.findIndex((s, i) =>
     i === SLIDES.length - 1 ? progress >= s.startPct : progress >= s.startPct && progress < s.endPct
