@@ -11,6 +11,8 @@ interface StageIntroCardProps {
   stage: StageData;
   texts?: GameTexts['stageModal'];
   triviaPassed?: boolean;
+  initialReadBullets?: number[];
+  onReadBulletsChange?: (read: number[]) => void;
   onProceedToTrivia: () => void;
 }
 
@@ -45,6 +47,8 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
   stage,
   texts = DEFAULT_GAME_TEXTS.stageModal,
   triviaPassed = false,
+  initialReadBullets = [],
+  onReadBulletsChange,
   onProceedToTrivia
 }) => {
   const [sceneError, setSceneError] = useState(false);
@@ -54,7 +58,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
   const [isTalkingPulse, setIsTalkingPulse] = useState(true);
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [openBulletIndex, setOpenBulletIndex] = useState<number | null>(null);
-  const [readBullets, setReadBullets] = useState<number[]>([]);
+  const [readBullets, setReadBullets] = useState<number[]>(initialReadBullets);
   const didYouKnowSectionRef = useRef<HTMLDivElement>(null);
   const voiceSupported = tataVoice.isSupported();
 
@@ -76,7 +80,7 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
     setIsTalkingPulse(true);
     setSceneError(false);
     setOpenBulletIndex(null);
-    setReadBullets([]);
+    setReadBullets(initialReadBullets);
     tataVoice.preload(stage.narratorIntro);
     if (voiceSupported && !soundEngine.isMuted()) {
       tataVoice.speak(stage.narratorIntro);
@@ -84,7 +88,12 @@ export const StageIntroCard: React.FC<StageIntroCardProps> = ({
     return () => {
       tataVoice.stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage.id, stage.narratorIntro, voiceSupported]);
+
+  useEffect(() => {
+    onReadBulletsChange?.(readBullets);
+  }, [readBullets, onReadBulletsChange]);
 
   useEffect(() => {
     if (bubbleClosed) {

@@ -130,16 +130,45 @@ export const VictoryScreen: React.FC<VictoryScreenProps> = ({
   onPlayAgain,
   onOpenStoryPostcard
 }) => {
-  const [revealedDiscovery, setRevealedDiscovery] = useState(false);
-  const [celebrationPose, setCelebrationPose] = useState<CelebrationPose>('dance');
+  const victoryStorageKey = `penas_victory_state_v1_${progress.voucherCode}`;
+  const loadVictoryState = () => {
+    try {
+      const raw = window.localStorage.getItem(victoryStorageKey);
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        revealedDiscovery?: boolean;
+        celebrationPose?: CelebrationPose;
+        voucherDownloaded?: boolean;
+      };
+    } catch {
+      return null;
+    }
+  };
+  const savedVictory = loadVictoryState();
+
+  const [revealedDiscovery, setRevealedDiscovery] = useState(Boolean(savedVictory?.revealedDiscovery));
+  const [celebrationPose, setCelebrationPose] = useState<CelebrationPose>(
+    savedVictory?.celebrationPose || 'dance'
+  );
   const [celebrationBurstKey, setCelebrationBurstKey] = useState(1);
-  const [voucherDownloaded, setVoucherDownloaded] = useState(false);
+  const [voucherDownloaded, setVoucherDownloaded] = useState(Boolean(savedVictory?.voucherDownloaded));
   const [photoError, setPhotoError] = useState(false);
   const [plazaError, setPlazaError] = useState(false);
   const [voucherImgError, setVoucherImgError] = useState(false);
   const [closingBgError, setClosingBgError] = useState(false);
   const [isClosingSpeaking, setIsClosingSpeaking] = useState(false);
   const [trophyBurstKey, setTrophyBurstKey] = useState(0);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        victoryStorageKey,
+        JSON.stringify({ revealedDiscovery, celebrationPose, voucherDownloaded })
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  }, [victoryStorageKey, revealedDiscovery, celebrationPose, voucherDownloaded]);
 
   // Switch exclusively to the epic victory score while on this final screen
   useEffect(() => {

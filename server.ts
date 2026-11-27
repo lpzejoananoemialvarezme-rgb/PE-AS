@@ -26,8 +26,17 @@ function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
-async function generateTataAudioWav(text: string): Promise<Buffer> {
-  const cached = ttsCache.get(text);
+type TtsLanguage = 'es' | 'en' | 'pt';
+
+const STYLE_PROMPTS: Record<TtsLanguage, string> = {
+  es: 'Voz masculina madura y muy calmada de Bolivia. Hombre sereno de tono grave, cálido y pausado, hablando con tranquilidad y cariño como un abuelo guía en español latinoamericano.',
+  en: 'Mature, very calm elder male voice with warm Andean serenity. Deep, gentle, unhurried grandfatherly tone speaking clearly and warmly in English.',
+  pt: 'Voz masculina madura, serena e muito calma de um avô guia andino. Tom grave, acolhedor e pausado, falando com tranquilidade e carinho em português.'
+};
+
+async function generateTataAudioWav(text: string, lang: TtsLanguage = 'es'): Promise<Buffer> {
+  const cacheKey = `${lang}::${text}`;
+  const cached = ttsCache.get(cacheKey);
   if (cached) return cached;
 
   const ai = getGeminiClient();
@@ -35,8 +44,7 @@ async function generateTataAudioWav(text: string): Promise<Buffer> {
     throw new Error('GEMINI_API_KEY_NOT_CONFIGURED');
   }
 
-  const stylePrompt =
-    'Voz masculina madura y muy calmada de Bolivia. Hombre sereno de tono grave, cálido y pausado, hablando con tranquilidad y cariño como un abuelo guía en español latinoamericano.';
+  const stylePrompt = STYLE_PROMPTS[lang] || STYLE_PROMPTS.es;
 
   const tryModels = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'] as const;
   let lastError: unknown = null;
@@ -75,7 +83,7 @@ async function generateTataAudioWav(text: string): Promise<Buffer> {
           const firstKey = ttsCache.keys().next().value;
           if (firstKey) ttsCache.delete(firstKey);
         }
-        ttsCache.set(text, wavBuffer);
+        ttsCache.set(cacheKey, wavBuffer);
         return wavBuffer;
       }
     } catch (err) {
@@ -101,10 +109,12 @@ async function startServer() {
       return;
     }
 
+    const lang: TtsLanguage =
+      req.body?.lang === 'en' ? 'en' : req.body?.lang === 'pt' ? 'pt' : 'es';
     const boundedText = rawText.slice(0, 1200);
 
     try {
-      const wavBuffer = await generateTataAudioWav(boundedText);
+      const wavBuffer = await generateTataAudioWav(boundedText, lang);
       res.setHeader('Content-Type', 'audio/wav');
       res.setHeader('Cache-Control', 'public, max-age=86400');
       res.send(wavBuffer);

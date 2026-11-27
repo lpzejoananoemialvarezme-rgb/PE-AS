@@ -1,6 +1,12 @@
 import { PlayerProgress, StageData, TravelerProfileInfo, TravelerTrait } from '../types/game';
 import { TRAVELER_PROFILES } from '../data/defaultStages';
 import { assetUrl } from './assetUrl';
+import { AppLanguage } from '../i18n/types';
+import {
+  buildTranslatedTouristGuideHtml,
+  getPlayerRankLocalized,
+  getVoucherLabels
+} from '../i18n/touristGuide';
 
 export function generateVoucherCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -21,22 +27,14 @@ export function getDominantTravelerProfile(
   return profiles[topTrait] || TRAVELER_PROFILES[topTrait];
 }
 
-export function getPlayerRank(progress: PlayerProgress): {
-  rankTitle: 'Guardián de Peñas' | 'Explorador de Peñas';
+export function getPlayerRank(
+  progress: PlayerProgress,
+  lang: AppLanguage = 'es'
+): {
+  rankTitle: string;
   badgeDescription: string;
 } {
-  if (progress.firstTryWins.length >= 5) {
-    return {
-      rankTitle: 'Guardián de Peñas',
-      badgeDescription:
-        'Has superado la mayoría de los desafíos al primer intento, demostrando profundo respeto por la memoria histórica, natural y comunitaria de Peñas.'
-    };
-  }
-  return {
-    rankTitle: 'Explorador de Peñas',
-    badgeDescription:
-      'Has recorrido con perseverancia las 7 etapas del sendero andino, descubriendo los tesoros culturales, naturales y humanos de Peñas.'
-  };
+  return getPlayerRankLocalized(progress, lang);
 }
 
 function triggerHtmlDownload(filename: string, htmlContent: string) {
@@ -69,11 +67,28 @@ function escapeHtml(input: string): string {
 export function downloadTouristGuide(
   _stages: StageData[],
   progress: PlayerProgress,
-  profiles: Record<TravelerTrait, TravelerProfileInfo> = TRAVELER_PROFILES
+  profiles: Record<TravelerTrait, TravelerProfileInfo> = TRAVELER_PROFILES,
+  lang: AppLanguage = 'es'
 ) {
   const profile = getDominantTravelerProfile(progress.traitScores, profiles);
-  const { rankTitle } = getPlayerRank(progress);
-  const traveler = escapeHtml(progress.playerName.trim() || 'Viajero de Peñas');
+  const { rankTitle } = getPlayerRank(progress, lang);
+  const voucherLabels = getVoucherLabels(lang);
+  const travelerRaw = progress.playerName.trim() || voucherLabels.defaultTraveler;
+
+  if (lang === 'en' || lang === 'pt') {
+    const translated = buildTranslatedTouristGuideHtml({
+      travelerRaw,
+      rankTitle,
+      profile,
+      mapViewUrl: PENAS_GOOGLE_MAP_VIEW_URL,
+      mapEmbedUrl: PENAS_GOOGLE_MAP_EMBED_URL,
+      lang
+    });
+    triggerHtmlDownload(translated.filename, translated.html);
+    return;
+  }
+
+  const traveler = escapeHtml(travelerRaw);
 
   const html = `<!doctype html>
 <html lang="es">
@@ -772,10 +787,14 @@ export const COMMUNITY_VOUCHER_IMAGE = assetUrl(
   '/assets/aistudio/WhatsApp_Image_2026-11-23_at_21.41.29_ba509f74.jpeg'
 );
 
-export async function downloadCommunityVoucher(progress: PlayerProgress): Promise<void> {
-  const traveler = progress.playerName.trim() || 'Viajero de Peñas';
-  const { rankTitle } = getPlayerRank(progress);
-  const dateStr = new Date().toLocaleDateString('es-BO', {
+export async function downloadCommunityVoucher(
+  progress: PlayerProgress,
+  lang: AppLanguage = 'es'
+): Promise<void> {
+  const labels = getVoucherLabels(lang);
+  const traveler = progress.playerName.trim() || labels.defaultTraveler;
+  const { rankTitle } = getPlayerRank(progress, lang);
+  const dateStr = new Date().toLocaleDateString(labels.locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -834,12 +853,12 @@ export async function downloadCommunityVoucher(progress: PlayerProgress): Promis
 
     ctx.fillStyle = '#E2DDD2';
     ctx.font = `${Math.max(14, Math.round(targetW * 0.016))}px sans-serif`;
-    ctx.fillText(`Emitido en Peñas, La Paz · ${dateStr}`, pad, barY + footerHeight * 0.72);
+    ctx.fillText(labels.issuedAt(dateStr), pad, barY + footerHeight * 0.72);
 
     ctx.fillStyle = '#FFD166';
     ctx.font = `bold ${Math.max(16, Math.round(targetW * 0.02))}px monospace`;
     ctx.textAlign = 'right';
-    ctx.fillText(`Código: ${progress.voucherCode}`, targetW - pad, barY + footerHeight * 0.52);
+    ctx.fillText(labels.codePrefix(progress.voucherCode), targetW - pad, barY + footerHeight * 0.52);
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('Error generando PNG');
@@ -847,7 +866,7 @@ export async function downloadCommunityVoucher(progress: PlayerProgress): Promis
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Vale-Premio-Penas-${progress.voucherCode}.png`;
+    link.download = `${labels.filenamePrefix}-${progress.voucherCode}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -856,7 +875,7 @@ export async function downloadCommunityVoucher(progress: PlayerProgress): Promis
     // Direct image fallback
     const link = document.createElement('a');
     link.href = COMMUNITY_VOUCHER_IMAGE;
-    link.download = `Vale-Premio-Penas-${progress.voucherCode}.jpeg`;
+    link.download = `${labels.filenamePrefix}-${progress.voucherCode}.jpeg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

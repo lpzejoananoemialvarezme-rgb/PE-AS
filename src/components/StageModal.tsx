@@ -101,6 +101,76 @@ function normalizeAnswer(text: string): string {
     .replace(/[^a-z0-9\s]/g, '');
 }
 
+interface StageCheckpoint {
+  phase: StagePhase;
+  selectedMode: 'primary' | 'secondary';
+  readBullets: number[];
+  triviaPassed: boolean;
+  hadWrongAttempt: boolean;
+  chosenTrait: TravelerTrait;
+  videoWatched: boolean;
+  revealedHints: number;
+  isReplay?: boolean;
+}
+
+const VALID_PHASES: StagePhase[] = [
+  'CONTEXT',
+  'TRIVIA',
+  'CHALLENGE_SELECT',
+  'CHALLENGE',
+  'CHALLENGE_CLEARED',
+  'TRAVELER_TRAIT',
+  'RELIC_UNLOCKED'
+];
+
+function getCheckpointKey(stageId: number): string {
+  return `penas_stage_checkpoint_v1_${stageId}`;
+}
+
+function loadStageCheckpoint(stageId: number, alreadyCompleted: boolean, hasVideoUrl: boolean): StageCheckpoint {
+  const defaultState: StageCheckpoint = {
+    phase: alreadyCompleted ? 'RELIC_UNLOCKED' : 'CONTEXT',
+    selectedMode: 'primary',
+    readBullets: [],
+    triviaPassed: alreadyCompleted,
+    hadWrongAttempt: false,
+    chosenTrait: 'cultural',
+    videoWatched: alreadyCompleted || hasVideoUrl,
+    revealedHints: 0
+  };
+  try {
+    const raw = window.localStorage.getItem(getCheckpointKey(stageId));
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw) as Partial<StageCheckpoint>;
+    if (!parsed || typeof parsed !== 'object') return defaultState;
+    if (alreadyCompleted && !parsed.isReplay) return defaultState;
+    const phase = VALID_PHASES.includes(parsed.phase as StagePhase)
+      ? (parsed.phase as StagePhase)
+      : defaultState.phase;
+    return {
+      phase,
+      selectedMode: parsed.selectedMode === 'secondary' ? 'secondary' : 'primary',
+      readBullets: Array.isArray(parsed.readBullets)
+        ? parsed.readBullets.filter((n): n is number => typeof n === 'number')
+        : [],
+      triviaPassed: Boolean(parsed.triviaPassed || alreadyCompleted),
+      hadWrongAttempt: Boolean(parsed.hadWrongAttempt),
+      chosenTrait:
+        parsed.chosenTrait === 'cultural' ||
+        parsed.chosenTrait === 'aventurero' ||
+        parsed.chosenTrait === 'naturaleza' ||
+        parsed.chosenTrait === 'comunitario'
+          ? parsed.chosenTrait
+          : 'cultural',
+      videoWatched: Boolean(parsed.videoWatched || alreadyCompleted || hasVideoUrl),
+      revealedHints: typeof parsed.revealedHints === 'number' ? Math.max(0, parsed.revealedHints) : 0,
+      isReplay: Boolean(parsed.isReplay)
+    };
+  } catch {
+    return defaultState;
+  }
+}
+
 export const StageModal: React.FC<StageModalProps> = ({
   stage,
   alreadyCompleted,
@@ -111,32 +181,77 @@ export const StageModal: React.FC<StageModalProps> = ({
   onCompleteStage
 }) => {
   const modalTexts = gameTexts.stageModal;
-  const [selectedMode, setSelectedMode] = useState<'primary' | 'secondary'>('primary');
+  const initialCheckpoint = loadStageCheckpoint(stage.id, alreadyCompleted, Boolean(stage.videoUrl));
+  const [selectedMode, setSelectedMode] = useState<'primary' | 'secondary'>(initialCheckpoint.selectedMode);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [riddleInput, setRiddleInput] = useState('');
-  const [revealedHints, setRevealedHints] = useState(0);
-  const [videoWatched, setVideoWatched] = useState(alreadyCompleted || Boolean(stage.videoUrl));
-  const [hadWrongAttempt, setHadWrongAttempt] = useState(false);
+  const [revealedHints, setRevealedHints] = useState(initialCheckpoint.revealedHints);
+  const [videoWatched, setVideoWatched] = useState(initialCheckpoint.videoWatched);
+  const [hadWrongAttempt, setHadWrongAttempt] = useState(initialCheckpoint.hadWrongAttempt);
   const [feedbackError, setFeedbackError] = useState('');
-  const [triviaPassed, setTriviaPassed] = useState(alreadyCompleted);
+  const [triviaPassed, setTriviaPassed] = useState(initialCheckpoint.triviaPassed);
+  const [readBullets, setReadBullets] = useState<number[]>(initialCheckpoint.readBullets);
+  const [isReplay, setIsReplay] = useState<boolean>(Boolean(initialCheckpoint.isReplay));
   const [pickedTriviaIdx, setPickedTriviaIdx] = useState<number | null>(null);
   const [triviaError, setTriviaError] = useState('');
   const [justSolvedTrivia, setJustSolvedTrivia] = useState(false);
   const triviaTimerRef = useRef<number | null>(null);
-  const [phase, setPhase] = useState<StagePhase>(alreadyCompleted ? 'RELIC_UNLOCKED' : 'CONTEXT');
-  const [chosenTrait, setChosenTrait] = useState<TravelerTrait>('cultural');
+  const [phase, setPhase] = useState<StagePhase>(initialCheckpoint.phase);
+  const [chosenTrait, setChosenTrait] = useState<TravelerTrait>(initialCheckpoint.chosenTrait);
 
   useEffect(() => {
-    setSelectedMode('primary');
+    const loaded = loadStageCheckpoint(stage.id, alreadyCompleted, Boolean(stage.videoUrl));
+    setSelectedMode(loaded.selectedMode);
     setSelectedOption(null);
     setRiddleInput('');
-    setRevealedHints(0);
+    setRevealedHints(loaded.revealedHints);
+    setVideoWatched(loaded.videoWatched);
+    setHadWrongAttempt(loaded.hadWrongAttempt);
     setFeedbackError('');
-    setTriviaPassed(alreadyCompleted);
+    setTriviaPassed(loaded.triviaPassed);
+    setReadBullets(loaded.readBullets);
+    setIsReplay(Boolean(loaded.isReplay));
     setPickedTriviaIdx(null);
     setTriviaError('');
     setJustSolvedTrivia(false);
-  }, [stage.id, alreadyCompleted]);
+    setPhase(loaded.phase);
+    setChosenTrait(loaded.chosenTrait);
+  }, [stage.id, stage.videoUrl, alreadyCompleted]);
+
+  useEffect(() => {
+    try {
+      if (alreadyCompleted && !isReplay && phase === 'RELIC_UNLOCKED') {
+        window.localStorage.removeItem(getCheckpointKey(stage.id));
+        return;
+      }
+      const payload: StageCheckpoint = {
+        phase,
+        selectedMode,
+        readBullets,
+        triviaPassed,
+        hadWrongAttempt,
+        chosenTrait,
+        videoWatched,
+        revealedHints,
+        isReplay
+      };
+      window.localStorage.setItem(getCheckpointKey(stage.id), JSON.stringify(payload));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [
+    stage.id,
+    alreadyCompleted,
+    isReplay,
+    phase,
+    selectedMode,
+    readBullets,
+    triviaPassed,
+    hadWrongAttempt,
+    chosenTrait,
+    videoWatched,
+    revealedHints
+  ]);
 
   useEffect(() => {
     return () => {
@@ -250,6 +365,11 @@ export const StageModal: React.FC<StageModalProps> = ({
   const handleFinishStage = () => {
     tataVoice.stop();
     soundEngine.playClick();
+    try {
+      window.localStorage.removeItem(getCheckpointKey(stage.id));
+    } catch {
+      // Ignore storage errors
+    }
     if (!alreadyCompleted) {
       onCompleteStage(stage.id, !hadWrongAttempt, chosenTrait);
     }
@@ -295,6 +415,8 @@ export const StageModal: React.FC<StageModalProps> = ({
                   setRevealedHints(0);
                   setFeedbackError('');
                   setTriviaPassed(false);
+                  setReadBullets([]);
+                  setIsReplay(true);
                   setPhase('CONTEXT');
                 }}
                 className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl bg-[#17334E] hover:bg-[#1D4E89] text-[#FFF8E7] text-xs sm:text-sm font-semibold whitespace-nowrap cursor-pointer border border-[#4EA8DE]/40"
@@ -327,6 +449,8 @@ export const StageModal: React.FC<StageModalProps> = ({
               stage={stage}
               texts={modalTexts}
               triviaPassed={triviaPassed}
+              initialReadBullets={readBullets}
+              onReadBulletsChange={setReadBullets}
               onProceedToTrivia={handleProceedToTrivia}
             />
           )}

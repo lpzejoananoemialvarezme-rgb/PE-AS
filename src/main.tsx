@@ -1,12 +1,15 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { LanguageProvider } from './i18n/LanguageContext.tsx';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
+  <LanguageProvider>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </LanguageProvider>
 );
 
 // Load decorative Google Fonts strictly post-mount without blocking initial load or mobile WebViews

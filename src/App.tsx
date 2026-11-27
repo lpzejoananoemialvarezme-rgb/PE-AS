@@ -36,6 +36,22 @@ const StoryPostcardModal = lazy(() =>
 );
 
 const PROGRESS_STORAGE_KEY = 'penas_player_progress_v1';
+const SESSION_STORAGE_KEY = 'penas_session_state_v1';
+
+interface SavedSessionState {
+  screen: GameScreen;
+  activeStageId: number | null;
+}
+
+function clearStageCheckpoints() {
+  try {
+    for (let i = 1; i <= DEFAULT_STAGES.length; i++) {
+      window.localStorage.removeItem(`penas_stage_checkpoint_v1_${i}`);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
 
 function createFreshProgress(playerName = '', avatar: AvatarConfig = DEFAULT_AVATAR): PlayerProgress {
   return {
@@ -132,8 +148,34 @@ export default function App() {
 
   const gameTexts: GameTexts = DEFAULT_GAME_TEXTS;
 
-  const [screen, setScreen] = useState<GameScreen>('TITLE_MENU');
-  const [activeStageId, setActiveStageId] = useState<number | null>(null);
+  const [initialSession] = useState<SavedSessionState>(() => {
+    try {
+      const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<SavedSessionState>;
+        const validScreen: GameScreen =
+          parsed.screen === 'VICTORY_SCREEN' && progress.completedStages.length >= stages.length
+            ? 'VICTORY_SCREEN'
+            : parsed.screen === 'MAP_VIEW' || parsed.screen === 'VICTORY_SCREEN'
+              ? 'MAP_VIEW'
+              : 'TITLE_MENU';
+        const validStageId =
+          validScreen === 'MAP_VIEW' &&
+          typeof parsed.activeStageId === 'number' &&
+          parsed.activeStageId >= 1 &&
+          parsed.activeStageId <= Math.max(progress.unlockedStage, ...progress.completedStages, 1)
+            ? parsed.activeStageId
+            : null;
+        return { screen: validScreen, activeStageId: validStageId };
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return { screen: 'TITLE_MENU', activeStageId: null };
+  });
+
+  const [screen, setScreen] = useState<GameScreen>(initialSession.screen);
+  const [activeStageId, setActiveStageId] = useState<number | null>(initialSession.activeStageId);
   const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isStoryPostcardOpen, setIsStoryPostcardOpen] = useState(false);
@@ -147,6 +189,17 @@ export default function App() {
       // ignore storage quota errors
     }
   }, [progress]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({ screen, activeStageId } satisfies SavedSessionState)
+      );
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [screen, activeStageId]);
 
   useEffect(() => {
     soundEngine.syncAmbientContext(screen, activeStageId);
@@ -186,9 +239,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeStageId, isAvatarCreatorOpen, isProfileOpen, isStoryPostcardOpen, toggleMute]);
 
+  const handleContinueSaved = useCallback(() => {
+    soundEngine.startMusic();
+    soundEngine.playClick();
+    setScreen('MAP_VIEW');
+  }, []);
+
   const handleStartNew = useCallback(() => {
     soundEngine.startMusic();
     soundEngine.playClick();
+    clearStageCheckpoints();
     setToastAchievements([]);
     setRecentAchievementIds([]);
     setProgress((prev) => createFreshProgress(prev.playerName, prev.avatar));
@@ -273,7 +333,13 @@ export default function App() {
           playerName={progress.playerName}
           avatarConfig={progress.avatar}
           gameTexts={gameTexts}
+          hasSavedProgress={
+            progress.completedStages.length > 0 ||
+            progress.unlockedStage > 1 ||
+            activeStageId !== null
+          }
           onChangeName={(name) => setProgress((p) => ({ ...p, playerName: name }))}
+          onContinue={handleContinueSaved}
           onStart={handleStartNew}
           onOpenAvatarCreator={() => setIsAvatarCreatorOpen(true)}
         />

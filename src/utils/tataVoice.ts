@@ -1,4 +1,5 @@
 import { soundEngine } from './sound';
+import { AppLanguage, getStoredLanguage } from '../i18n/types';
 
 type VoiceListener = (speaking: boolean) => void;
 
@@ -6,6 +7,7 @@ const MAX_CLIENT_AUDIO_CACHE = 32;
 
 class TataVoiceEngine {
   private speaking = false;
+  private language: AppLanguage = getStoredLanguage();
   private listeners = new Set<VoiceListener>();
   private cachedVoices: SpeechSynthesisVoice[] = [];
   private audioDataCache = new Map<string, ArrayBuffer>();
@@ -27,6 +29,14 @@ class TataVoiceEngine {
 
   constructor() {
     this.init();
+  }
+
+  public setLanguage(lang: AppLanguage): void {
+    this.language = lang;
+  }
+
+  public getLanguage(): AppLanguage {
+    return this.language;
   }
 
   private init(): void {
@@ -214,6 +224,81 @@ class TataVoiceEngine {
       voices = this.cachedVoices;
     }
 
+    if (this.language === 'en') {
+      const english = voices.filter((v) => {
+        const norm = (v.lang || '').replace(/_/g, '-').toLowerCase();
+        return norm.startsWith('en');
+      });
+      if (english.length === 0) return { voice: null, isConfirmedMale: false };
+
+      const enMalePattern =
+        /\b(daniel|george|arthur|oliver|brian|matthew|david|mark|christopher|andrew|guy|eric|roger|ryan|stephen|steffan|tony|davis|jason|brandon|aaron|alex|fred|reed|grandpa|eddy|rocko|male|man|masculine)\b/;
+      const enFemalePattern =
+        /\b(samantha|victoria|karen|kate|serena|fiona|moira|tessa|allison|ava|susan|zira|hazel|jenny|aria|michelle|emma|sonia|libby|clara|flo|grandma|sandy|shelley|female|woman|girl)\b/;
+
+      const classifyMale = (v: SpeechSynthesisVoice) =>
+        enMalePattern.test(`${(v.name || '').toLowerCase()} ${(v.voiceURI || '').toLowerCase()}`);
+
+      const scoreEn = (v: SpeechSynthesisVoice): number => {
+        const name = (v.name || '').toLowerCase();
+        const fullId = `${name} ${(v.voiceURI || '').toLowerCase()}`;
+        const lang = (v.lang || '').replace(/_/g, '-').toLowerCase();
+        let score = 0;
+
+        if (/espeak|compact|festival|mbrola|flite|pico/.test(fullId)) score -= 950;
+        if (classifyMale(v)) score += 650;
+        if (/google\s+us\s+english$|google\s+uk\s+english\s+female/.test(name)) score -= 650;
+        if (/google\s+uk\s+english\s+male/.test(name)) score += 650;
+        if (enFemalePattern.test(fullId)) score -= 800;
+        if (/natural|neural|online|enhanced|premium|wavenet|studio/.test(name)) score += 140;
+        else if (/microsoft|apple|siri|samsung/.test(name)) score += 45;
+        if (lang.includes('en-us')) score += 65;
+        else if (lang.includes('en-gb') || lang.includes('en-ca')) score += 45;
+        if (v.localService) score += 4;
+        return score;
+      };
+
+      const best = [...english].sort((a, b) => scoreEn(b) - scoreEn(a))[0] || null;
+      return { voice: best, isConfirmedMale: best ? classifyMale(best) : false };
+    }
+
+    if (this.language === 'pt') {
+      const portuguese = voices.filter((v) => {
+        const norm = (v.lang || '').replace(/_/g, '-').toLowerCase();
+        return norm.startsWith('pt') || norm.startsWith('por');
+      });
+      if (portuguese.length === 0) return { voice: null, isConfirmedMale: false };
+
+      const ptMalePattern =
+        /\b(antonio|antônio|daniel|duarte|tiago|diogo|fabio|fábio|donato|nicolau|julio|júlio|valerio|valério|humberto|cristiano|joaquim|lucas|pedro|gabriel|rafael|eddy|reed|grandpa|rocko|male|homem|masculin)\b/;
+      const ptFemalePattern =
+        /\b(luciana|francisca|fernanda|joana|ines|inês|raquel|maria|thalita|leila|manuela|giovanna|yara|elsa|brenda|flo|grandma|sandy|shelley|female|mulher|femin)\b/;
+
+      const classifyMale = (v: SpeechSynthesisVoice) =>
+        ptMalePattern.test(`${(v.name || '').toLowerCase()} ${(v.voiceURI || '').toLowerCase()}`);
+
+      const scorePt = (v: SpeechSynthesisVoice): number => {
+        const name = (v.name || '').toLowerCase();
+        const fullId = `${name} ${(v.voiceURI || '').toLowerCase()}`;
+        const lang = (v.lang || '').replace(/_/g, '-').toLowerCase();
+        let score = 0;
+
+        if (/espeak|compact|festival|mbrola|flite|pico/.test(fullId)) score -= 950;
+        if (classifyMale(v)) score += 650;
+        if (/^google\s+portugu[eê]s/.test(name)) score -= 650;
+        if (ptFemalePattern.test(fullId)) score -= 800;
+        if (/natural|neural|online|enhanced|premium|wavenet|studio/.test(name)) score += 140;
+        else if (/microsoft|apple|siri|samsung/.test(name)) score += 45;
+        if (lang.includes('pt-br')) score += 75;
+        else if (lang.includes('pt-pt')) score += 35;
+        if (v.localService) score += 4;
+        return score;
+      };
+
+      const best = [...portuguese].sort((a, b) => scorePt(b) - scorePt(a))[0] || null;
+      return { voice: best, isConfirmedMale: best ? classifyMale(best) : false };
+    }
+
     const spanish = voices.filter((v) => {
       const norm = (v.lang || '').replace(/_/g, '-').toLowerCase();
       return norm.startsWith('es') || norm.startsWith('spa');
@@ -300,17 +385,29 @@ class TataVoiceEngine {
   }
 
   /**
-   * Strongly prioritizes warm, deep Latin American elder male voices
-   * (avoiding female defaults such as Chrome's Google español / es-ES whenever a male voice exists).
+   * Strongly prioritizes warm, deep elder male voices across Spanish, English, and Portuguese.
    */
   public pickElderMaleSpanishVoice(): SpeechSynthesisVoice | null {
     return this.pickVoiceWithConfidence().voice;
   }
 
   public cleanForSpeech(rawText: string): string {
-    return rawText
-      .replace(/m\s*s\.\s*n\.\s*m\./gi, 'metros sobre el nivel del mar')
-      .replace(/\bkm\b/gi, 'kilómetros')
+    let text = rawText;
+    if (this.language === 'en') {
+      text = text
+        .replace(/m\s*(?:a\.s\.l\.|s\.\s*n\.\s*m\.)/gi, 'meters above sea level')
+        .replace(/\bkm\b/gi, 'kilometers');
+    } else if (this.language === 'pt') {
+      text = text
+        .replace(/m\s*s\.\s*n\.\s*m\./gi, 'metros acima do nível do mar')
+        .replace(/\bkm\b/gi, 'quilômetros');
+    } else {
+      text = text
+        .replace(/m\s*s\.\s*n\.\s*m\./gi, 'metros sobre el nivel del mar')
+        .replace(/\bkm\b/gi, 'kilómetros');
+    }
+
+    return text
       .replace(/\s*[•·|]+\s*/g, ', ')
       .replace(/\(([^)]+)\)/g, ', $1, ')
       .replace(/[«»"“”]/g, '')
@@ -414,14 +511,16 @@ class TataVoiceEngine {
   public preload(rawText: string): void {
     if (this.serverTtsAvailable === false || typeof fetch === 'undefined') return;
     const cleaned = this.cleanForSpeech(rawText);
-    if (!cleaned || this.audioDataCache.has(cleaned)) return;
+    const activeLang = this.language;
+    const cacheKey = `${activeLang}::${cleaned}`;
+    if (!cleaned || this.audioDataCache.has(cacheKey)) return;
 
     void this.probeServerTts().then((available) => {
-      if (!available || this.audioDataCache.has(cleaned)) return;
+      if (!available || this.audioDataCache.has(cacheKey)) return;
       void fetch('/api/tata-tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleaned })
+        body: JSON.stringify({ text: cleaned, lang: activeLang })
       })
         .then(async (res) => {
           if (!res.ok) {
@@ -432,7 +531,7 @@ class TataVoiceEngine {
           }
           const buffer = await res.arrayBuffer();
           if (buffer.byteLength > 44) {
-            this.storeAudioCache(cleaned, buffer);
+            this.storeAudioCache(cacheKey, buffer);
           }
         })
         .catch(() => {
@@ -515,7 +614,9 @@ class TataVoiceEngine {
       try {
         const utterance = new SpeechSynthesisUtterance(chunks[index]);
         this.activeUtterance = utterance;
-        utterance.lang = voice?.lang || 'es-BO';
+        const fallbackLocale =
+          this.language === 'en' ? 'en-US' : this.language === 'pt' ? 'pt-BR' : 'es-BO';
+        utterance.lang = voice?.lang || fallbackLocale;
         if (voice) utterance.voice = voice;
         // Calm, warm elder male voice at a gentle unhurried pace
         utterance.pitch = isConfirmedMale ? 0.84 : 0.65;
@@ -663,12 +764,15 @@ class TataVoiceEngine {
     const cleaned = this.cleanForSpeech(rawText);
     if (!cleaned) return false;
 
+    const activeLang = this.language;
+    const cacheKey = `${activeLang}::${cleaned}`;
+
     this.unlockMobileAudio();
     this.stop();
     const currentSeq = this.sequenceId;
     this.onCompleteCallback = options?.onEnd || null;
 
-    const cachedWav = this.audioDataCache.get(cleaned);
+    const cachedWav = this.audioDataCache.get(cacheKey);
     if (cachedWav) {
       this.setSpeaking(true);
       void this.playAudioBuffer(cachedWav, currentSeq).then((handled) => {
@@ -693,7 +797,7 @@ class TataVoiceEngine {
     void fetch('/api/tata-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleaned }),
+      body: JSON.stringify({ text: cleaned, lang: activeLang }),
       signal: controller.signal
     })
       .then(async (res) => {
@@ -708,7 +812,7 @@ class TataVoiceEngine {
         const wavBuffer = await res.arrayBuffer();
         if (currentSeq !== this.sequenceId || wavBuffer.byteLength <= 44) return;
 
-        this.storeAudioCache(cleaned, wavBuffer);
+        this.storeAudioCache(cacheKey, wavBuffer);
         const handled = await this.playAudioBuffer(wavBuffer, currentSeq);
         if (!handled && currentSeq === this.sequenceId) {
           this.speakWithBrowserFallback(cleaned, currentSeq);

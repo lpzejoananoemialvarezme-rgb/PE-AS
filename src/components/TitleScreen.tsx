@@ -13,7 +13,9 @@ interface TitleScreenProps {
   playerName: string;
   avatarConfig: AvatarConfig;
   gameTexts?: GameTexts;
+  hasSavedProgress?: boolean;
   onChangeName: (name: string) => void;
+  onContinue?: () => void;
   onStart: () => void;
   onOpenAvatarCreator: () => void;
 }
@@ -25,11 +27,14 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   playerName,
   avatarConfig,
   gameTexts = DEFAULT_GAME_TEXTS,
+  hasSavedProgress = false,
   onChangeName,
+  onContinue,
   onStart,
   onOpenAvatarCreator
 }) => {
   const [bgError, setBgError] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const t = gameTexts.titleScreen;
 
   useEffect(() => {
@@ -39,8 +44,18 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     };
   }, []);
 
-  const handleStartGame = () => {
+  const handlePrimaryAction = () => {
     tataVoice.stop();
+    if (hasSavedProgress && onContinue) {
+      onContinue();
+    } else {
+      onStart();
+    }
+  };
+
+  const handleStartFresh = () => {
+    tataVoice.stop();
+    setConfirmReset(false);
     onStart();
   };
 
@@ -135,7 +150,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    handleStartGame();
+                    handlePrimaryAction();
                   }
                 }}
                 placeholder="Ej. Wayra Quispe"
@@ -144,16 +159,46 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </div>
           </div>
 
-          {/* Single Bottom Action Button */}
-          <div className="flex justify-center pt-1">
+          {/* Primary Journey Action (Continue saved progress or Start) */}
+          <div className="flex flex-col items-center justify-center gap-2.5 pt-1">
             <button
               type="button"
-              onClick={handleStartGame}
+              onClick={handlePrimaryAction}
               className="inline-flex items-center justify-center gap-2.5 px-9 min-h-[54px] rounded-xl bg-[#F5B700] hover:bg-[#FFD166] text-[#1A1207] font-bold text-base sm:text-lg transition-transform duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer shadow-[0_10px_30px_rgba(245,183,0,0.35)]"
             >
               <Play className="w-5 h-5 fill-current" />
-              <span>Empezar la travesía</span>
+              <span>{hasSavedProgress ? 'Continuar la travesía' : 'Empezar la travesía'}</span>
             </button>
+
+            {hasSavedProgress && !confirmReset && (
+              <button
+                type="button"
+                onClick={() => setConfirmReset(true)}
+                className="text-xs sm:text-sm font-medium text-[#CBD5E1] hover:text-[#FFD166] underline underline-offset-4 cursor-pointer transition-colors"
+              >
+                Empezar desde el inicio
+              </button>
+            )}
+
+            {hasSavedProgress && confirmReset && (
+              <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl bg-[#081523]/92 border border-[#D9A05B]/45 px-3.5 py-2 text-xs text-[#FFF8E7]">
+                <span>¿Reiniciar tu avance guardado?</span>
+                <button
+                  type="button"
+                  onClick={handleStartFresh}
+                  className="px-3 py-1 rounded-lg bg-[#8C3B2B] hover:bg-[#A64836] font-bold text-[#FFF8E7] cursor-pointer"
+                >
+                  Sí, reiniciar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(false)}
+                  className="px-3 py-1 rounded-lg bg-[#17334E] hover:bg-[#234B70] font-semibold text-[#D8D3C8] cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>

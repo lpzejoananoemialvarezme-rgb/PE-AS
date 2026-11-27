@@ -7,6 +7,9 @@ export interface StoryPostcardOptions {
   rankTitle: string;
   travelerTypeTitle: string;
   shareUrl: string;
+  locationHeader?: string;
+  headerTitle?: string;
+  footerCta?: string;
 }
 
 function loadImage(src: string, timeoutMs = 10000): Promise<HTMLImageElement> {
@@ -199,11 +202,11 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FFD166';
   ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText('PEÑAS · LA PAZ, BOLIVIA · 4.000 M', W / 2, 206);
+  ctx.fillText(options.locationHeader || 'PEÑAS · LA PAZ, BOLIVIA · 4.000 M', W / 2, 206);
 
   ctx.fillStyle = '#FFF8E7';
   ctx.font = '700 44px "Cinzel", Georgia, serif';
-  ctx.fillText('SENDERO DEL GUARDIÁN', W / 2, 266);
+  ctx.fillText(options.headerTitle || 'SENDERO DEL GUARDIÁN', W / 2, 266);
 
   // 5. Golden Aura + Serialized Aymara Avatar
   const avatarSize = 580;
@@ -270,7 +273,12 @@ export async function renderInstagramStoryBlob(options: StoryPostcardOptions): P
 
   ctx.fillStyle = '#FFD166';
   ctx.font = '700 32px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText('Juega gratis y aprende sobre Peñas', W / 2, cardY + 72, cardW - 60);
+  ctx.fillText(
+    options.footerCta || 'Juega gratis y aprende sobre Peñas',
+    W / 2,
+    cardY + 72,
+    cardW - 60
+  );
 
   // Clean URL Box inside card
   const urlDisplay = options.shareUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
